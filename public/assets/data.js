@@ -8,14 +8,14 @@
 window.CONFIG = {
   name: "SHEDINO",
   tagline: "Digital Information SHE",
-  company: "PT Nama Perusahaan",
-  address: "Kantor SHE, Area Operasional (isi alamat lengkap Anda)",
+  company: "PT ANTAREJA MAHADA MAKMUR",
+  address: "Kantor SHE, Area Operasional (Mine Officer Beruaq)",
   mapsUrl: "",                       // tautan Google Maps (opsional)
   teamPhoto: "",                     // foto tim SHE untuk bagian Tentang, misalnya "media/tim-she.jpg" (opsional)
-  email: "she@perusahaan.co.id",
-  whatsapp: "6281234567890",         // format internasional, tanpa + dan tanpa 0 di depan
-  whatsappLabel: "+62 812-3456-7890",
-  hours: "Senin sampai Jumat, 08.00 - 17.00 WIB",
+  email: "safety.officer01@ppa.co.id",
+  whatsapp: "6282256942224",         // format internasional, tanpa + dan tanpa 0 di depan
+  whatsappLabel: "+62 822-5694-2224",
+  hours: "Senin sampai Minggu, 07.00 - 17.00 WIB",
   pinned: { title: "Pemeliharaan platform pelatihan", text: "Sabtu, 02.00 - 04.00 WIB. Pendaftaran pelatihan ditunda sementara." }
 };
 
