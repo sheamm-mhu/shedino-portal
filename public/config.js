@@ -2,6 +2,6 @@
 // SUPABASE_ANON_KEY (anon / publishable) memang aman ditaruh di sini.
 // JANGAN PERNAH memasukkan service_role key ke file ini.
 window.SHEDINO_CONFIG = {
-  SUPABASE_URL: "",       // contoh: "https://abcdxyz.supabase.co"
-  SUPABASE_ANON_KEY: ""   // contoh: "eyJhbGciOi..."
+  SUPABASE_URL: "https://akowikawemlhapvrmclm.supabase.co",       // contoh: "https://abcdxyz.supabase.co"
+  SUPABASE_ANON_KEY: "sb_publishable_B6HX6KOHBSY89Dj7pDCJWQ__W3qQ7jD"   // contoh: "eyJhbGciOi..."
 };
