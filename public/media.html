@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kabar &amp; Edukasi | SHEDINO</title>
+<meta name="description" content="Kabar SHE dan edukasi keselamatan, kesehatan, dan lingkungan dari SHEDINO.">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header id="site-header" class="top"></header>
+
+<main>
+  <section class="page-head" aria-labelledby="h1">
+    <div class="wrap">
+      <div class="crumbs"><a href="index.html">Beranda</a> / <span id="crumb">Kabar &amp; Edukasi</span></div>
+      <h1 id="h1">Kabar &amp; Edukasi</h1>
+      <p id="lead">Kegiatan terbaru dan panduan keselamatan, kesehatan, serta lingkungan.</p>
+    </div>
+  </section>
+
+  <section class="page-body">
+    <div class="wrap">
+      <div class="tabs" id="tabs" role="group" aria-label="Jenis konten" style="margin-bottom:1.2rem"></div>
+
+      <div class="toolbar">
+        <label class="sr" for="q">Cari kabar atau edukasi</label>
+        <input id="q" type="search" placeholder="Cari judul, ringkasan, atau tagar">
+        <label class="lbl" for="cat">Kategori</label>
+        <select id="cat"></select>
+        <label class="lbl" for="yr">Tahun</label>
+        <select id="yr"></select>
+        <button class="btn ghost sm" id="reset" type="button">Atur ulang</button>
+      </div>
+
+      <div class="tagcloud" id="tags" role="group" aria-label="Tagar populer"></div>
+      <p class="result-info" id="info" role="status" aria-live="polite"></p>
+
+      <div class="cards" id="grid"></div>
+      <p class="empty" id="empty" hidden>Tidak ada konten yang cocok. Coba kata kunci lain atau atur ulang filter.</p>
+      <nav class="pager" id="pager" aria-label="Halaman"></nav>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/shared.js"></script>
+<script>
+(function () {
+  const { $, $$, esc, cardHTML, setNavCurrent } = window.SH;
+  const PAGE_SIZE = 9;
+  const TABS = [
+    { k: "semua", t: "Semua", lead: "Kegiatan terbaru dan panduan keselamatan, kesehatan, serta lingkungan." },
+    { k: "kabar", t: "Kabar SHE", lead: "Pengumuman dan kegiatan terbaru seputar keselamatan, kesehatan, dan lingkungan." },
+    { k: "edukasi", t: "Edukasi", lead: "Panduan singkat dan tips keselamatan yang mudah dipahami dan langsung bisa dipraktikkan." }
+  ];
+  const ALL = window.MEDIA.slice().sort((a, b) => b.date.localeCompare(a.date));
+  const p = new URLSearchParams(location.search);
+  const state = {
+    tab: TABS.some(t => t.k === p.get("tab")) ? p.get("tab") : "semua",
+    q: p.get("q") || "",
+    cat: p.get("kategori") || "",
+    yr: p.get("tahun") || "",
+    tag: p.get("tag") || "",
+    page: Math.max(1, parseInt(p.get("hal") || "1", 10) || 1)
+  };
+
+  function sync() {
+    const u = new URL(location.href);
+    ["tab", "q", "kategori", "tahun", "tag", "hal"].forEach(k => u.searchParams.delete(k));
+    if (state.tab !== "semua") u.searchParams.set("tab", state.tab);
+    if (state.q) u.searchParams.set("q", state.q);
+    if (state.cat) u.searchParams.set("kategori", state.cat);
+    if (state.yr) u.searchParams.set("tahun", state.yr);
+    if (state.tag) u.searchParams.set("tag", state.tag);
+    if (state.page > 1) u.searchParams.set("hal", state.page);
+    history.replaceState(null, "", u);
+  }
+
+  function renderTabs() {
+    $("#tabs").innerHTML = TABS.map(t => `<button class="tab" data-tab="${t.k}" aria-pressed="${t.k === state.tab}">${t.t}</button>`).join("");
+    const cur = TABS.find(t => t.k === state.tab);
+    $("#lead").textContent = cur.lead;
+    $("#h1").textContent = state.tab === "semua" ? "Kabar & Edukasi" : cur.t;
+    $("#crumb").textContent = cur.t === "Semua" ? "Kabar & Edukasi" : cur.t;
+    document.title = (state.tab === "semua" ? "Kabar & Edukasi" : cur.t) + " | " + window.CONFIG.name;
+    setNavCurrent(state.tab === "semua" ? null : state.tab);
+  }
+
+  function renderFilters() {
+    const inTab = ALL.filter(m => state.tab === "semua" || m.tab === state.tab);
+    const cats = window.CATEGORIES.filter(c => inTab.some(m => m.category === c));
+    $("#cat").innerHTML = `<option value="">Semua kategori</option>` + cats.map(c => `<option value="${esc(c)}"${c === state.cat ? " selected" : ""}>${esc(c)}</option>`).join("");
+    const years = [...new Set(inTab.map(m => m.date.slice(0, 4)))].sort().reverse();
+    $("#yr").innerHTML = `<option value="">Semua tahun</option>` + years.map(y => `<option value="${y}"${y === state.yr ? " selected" : ""}>${y}</option>`).join("");
+    $("#q").value = state.q;
+
+    const count = {};
+    inTab.forEach(m => (m.tags || []).forEach(t => count[t] = (count[t] || 0) + 1));
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10);
+    $("#tags").innerHTML = top.length ? `<span class="lbl">Tagar populer:</span>` + top.map(([t]) =>
+      `<button class="tag" data-tag="${esc(t)}" aria-pressed="${t === state.tag}">#${esc(t)}</button>`).join("") : "";
+  }
+
+  function filtered() {
+    const q = state.q.trim().toLowerCase();
+    return ALL.filter(m =>
+      (state.tab === "semua" || m.tab === state.tab) &&
+      (!state.cat || m.category === state.cat) &&
+      (!state.yr || m.date.startsWith(state.yr)) &&
+      (!state.tag || (m.tags || []).includes(state.tag)) &&
+      (!q || (m.title + " " + m.excerpt + " " + m.category + " " + (m.tags || []).join(" ")).toLowerCase().includes(q)));
+  }
+
+  function renderList() {
+    const list = filtered();
+    const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    if (state.page > pages) state.page = pages;
+    const slice = list.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
+    $("#grid").innerHTML = slice.map(cardHTML).join("");
+    $("#empty").hidden = list.length > 0;
+    $("#info").textContent = list.length ? `Menampilkan ${slice.length} dari ${list.length} konten` : "";
+
+    let h = "";
+    if (pages > 1) {
+      h += `<button data-p="${state.page - 1}" ${state.page === 1 ? "disabled" : ""} aria-label="Halaman sebelumnya">&laquo;</button>`;
+      for (let i = 1; i <= pages; i++) h += `<button data-p="${i}" ${i === state.page ? 'aria-current="page"' : ""} aria-label="Halaman ${i}">${i}</button>`;
+      h += `<button data-p="${state.page + 1}" ${state.page === pages ? "disabled" : ""} aria-label="Halaman berikutnya">&raquo;</button>`;
+    }
+    $("#pager").innerHTML = h;
+    sync();
+  }
+
+  function renderAll() { renderTabs(); renderFilters(); renderList(); }
+
+  $("#tabs").addEventListener("click", e => {
+    const b = e.target.closest(".tab"); if (!b) return;
+    state.tab = b.dataset.tab; state.cat = ""; state.yr = ""; state.tag = ""; state.page = 1; renderAll();
+  });
+  $("#q").addEventListener("input", e => { state.q = e.target.value; state.page = 1; renderList(); });
+  $("#cat").addEventListener("change", e => { state.cat = e.target.value; state.page = 1; renderList(); });
+  $("#yr").addEventListener("change", e => { state.yr = e.target.value; state.page = 1; renderList(); });
+  $("#tags").addEventListener("click", e => {
+    const b = e.target.closest("[data-tag]"); if (!b) return;
+    state.tag = state.tag === b.dataset.tag ? "" : b.dataset.tag; state.page = 1; renderFilters(); renderList();
+  });
+  $("#reset").addEventListener("click", () => { state.q = ""; state.cat = ""; state.yr = ""; state.tag = ""; state.page = 1; renderFilters(); renderList(); });
+  $("#pager").addEventListener("click", e => {
+    const b = e.target.closest("[data-p]"); if (!b || b.disabled) return;
+    state.page = +b.dataset.p; renderList(); window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>

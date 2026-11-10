@@ -1,0 +1,1 @@
+supabase-js v2.118.0 - MIT License - https://github.com/supabase/supabase-js

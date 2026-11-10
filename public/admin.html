@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin | SHEDINO</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/auth.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="SHEDINO, ke beranda">
+      <img src="assets/logo-192.png" width="40" height="40" alt="">
+      <span class="tx">SHEDINO<small>Digital Information SHE</small></span>
+    </a>
+    <nav aria-label="Navigasi">
+      <a href="index.html">Beranda</a>
+      <button id="logout" type="button">Keluar</button>
+    </nav>
+  </div>
+</header>
+
+<main class="adm">
+  <div class="wrap">
+    <h1>Panel Admin</h1>
+    <p class="lead">Kelola akun karyawan dan perbarui angka statistik SHE yang tampil di beranda.</p>
+
+    <div id="gate" class="warnbox" role="status">Memeriksa akses...</div>
+
+    <div class="tabs hidden" id="atabs" role="tablist" aria-label="Bagian panel admin" style="max-width:420px;margin-bottom:1.5rem">
+      <button role="tab" id="tab-acc" aria-selected="true" type="button">Akun</button>
+      <button role="tab" id="tab-stat" aria-selected="false" type="button">Statistik SHE</button>
+    </div>
+
+    <div id="stats-panel" class="hidden">
+      <p class="lead" style="margin-top:0">Isi angka terbaru lalu klik Simpan pada barisnya. Angka hanya tampil untuk akun yang sudah disetujui. Isian bebas (misalnya 0, 0,42, atau 96).</p>
+      <div class="tbl">
+        <table>
+          <thead><tr><th scope="col">Indikator</th><th scope="col">Nilai</th><th scope="col">Satuan</th><th scope="col">Keterangan periode</th><th scope="col">Diperbarui</th><th scope="col"><span class="sr">Aksi</span></th></tr></thead>
+          <tbody id="stat-rows"></tbody>
+        </table>
+        <p class="empty hidden" id="stat-empty">Data statistik belum ada. Jalankan ulang <code>supabase/schema.sql</code> di Supabase SQL Editor.</p>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="stats" role="group" aria-label="Filter berdasarkan status">
+        <button class="stat pending" data-f="pending" aria-pressed="true" type="button"><b id="c-pending">0</b><span>Menunggu persetujuan</span></button>
+        <button class="stat approved" data-f="approved" aria-pressed="false" type="button"><b id="c-approved">0</b><span>Disetujui</span></button>
+        <button class="stat rejected" data-f="rejected" aria-pressed="false" type="button"><b id="c-rejected">0</b><span>Ditolak / dicabut</span></button>
+      </div>
+
+      <div class="tools">
+        <label class="sr" for="q">Cari nama, email, atau ID karyawan</label>
+        <input id="q" type="search" placeholder="Cari nama, email, atau ID karyawan">
+        <button class="btn ghost" id="all" type="button">Tampilkan semua</button>
+        <button class="btn ghost" id="refresh" type="button">Muat ulang</button>
+      </div>
+
+      <div class="tbl">
+        <table>
+          <thead><tr>
+            <th scope="col">Nama</th><th scope="col">ID karyawan</th><th scope="col">Peran</th>
+            <th scope="col">Status</th><th scope="col">Mendaftar</th><th scope="col"><span class="sr">Aksi</span></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <p class="empty hidden" id="empty">Tidak ada akun pada filter ini.</p>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const STATUS = { pending:"Menunggu", approved:"Disetujui", rejected:"Ditolak" };
+  const ROLE = { karyawan:"Karyawan", admin:"Admin" };
+  let me = null, all = [], filter = "pending";
+
+  function gate(text){ const g=$("#gate"); g.textContent=text; g.classList.remove("hidden"); $("#app").classList.add("hidden"); }
+  function toast(t){
+    const el=$("#toast"); el.textContent=t; el.classList.remove("hidden");
+    clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.add("hidden"),2600);
+  }
+  const fmt = iso => new Date(iso).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"});
+
+  $("#logout").addEventListener("click", async () => { await Auth.signOut(); location.href = "index.html"; });
+
+  async function load(){
+    const { data, error } = await Auth.client
+      .from("profiles")
+      .select("id,email,full_name,employee_id,role,status,created_at")
+      .order("created_at",{ascending:false});
+    if(error){ toast("Gagal memuat data: " + Auth.friendly(error)); return; }
+    all = data || [];
+    render();
+  }
+
+  function render(){
+    ["pending","approved","rejected"].forEach(s => $("#c-"+s).textContent = all.filter(u => u.status===s).length);
+    document.querySelectorAll(".stat").forEach(b => b.setAttribute("aria-pressed", b.dataset.f === filter));
+    const q = $("#q").value.trim().toLowerCase();
+    const list = all.filter(u =>
+      (filter==="all" || u.status===filter) &&
+      (!q || [u.full_name,u.email,u.employee_id].some(v => (v||"").toLowerCase().includes(q))));
+    $("#rows").innerHTML = list.map(u => {
+      const self = u.id === me.id;
+      let acts = "";
+      if(self){ acts = '<span class="em">Akun Anda</span>'; }
+      else {
+        if(u.status !== "approved") acts += `<button class="btn teal sm" data-a="approve" data-id="${u.id}" type="button">Setujui</button>`;
+        if(u.status === "pending")  acts += `<button class="btn ghost sm" data-a="reject" data-id="${u.id}" type="button">Tolak</button>`;
+        if(u.status === "approved") {
+          acts += u.role === "admin"
+            ? `<button class="btn ghost sm" data-a="demote" data-id="${u.id}" type="button">Jadikan Karyawan</button>`
+            : `<button class="btn ghost sm" data-a="promote" data-id="${u.id}" type="button">Jadikan Admin</button>`;
+          acts += `<button class="btn ghost sm" data-a="revoke" data-id="${u.id}" type="button">Cabut akses</button>`;
+        }
+      }
+      return `<tr>
+        <td><span class="nm">${esc(u.full_name || "(tanpa nama)")}</span><span class="em">${esc(u.email)}</span></td>
+        <td>${esc(u.employee_id || "-")}</td>
+        <td><span class="chip ${u.role}">${ROLE[u.role]||esc(u.role)}</span></td>
+        <td><span class="chip ${u.status}">${STATUS[u.status]||esc(u.status)}</span></td>
+        <td>${fmt(u.created_at)}</td>
+        <td><div class="acts">${acts}</div></td>
+      </tr>`;
+    }).join("");
+    $("#empty").classList.toggle("hidden", list.length > 0);
+  }
+
+  async function update(id, patch, okText){
+    const { error } = await Auth.client.from("profiles").update(patch).eq("id", id);
+    if(error){ toast("Gagal menyimpan: " + Auth.friendly(error)); return; }
+    toast(okText);
+    await load();
+  }
+
+  $("#rows").addEventListener("click", e => {
+    const b = e.target.closest("[data-a]"); if(!b) return;
+    const id = b.dataset.id, u = all.find(x => x.id === id); if(!u) return;
+    const nm = u.full_name || u.email;
+    switch(b.dataset.a){
+      case "approve": update(id,{status:"approved"}, nm + " disetujui."); break;
+      case "reject":  if(confirm("Tolak pendaftaran " + nm + "?")) update(id,{status:"rejected"}, "Pendaftaran ditolak."); break;
+      case "revoke":  if(confirm("Cabut akses " + nm + "? Orang ini tidak bisa lagi membuka layanan internal.")) update(id,{status:"rejected"}, "Akses dicabut."); break;
+      case "promote": if(confirm("Jadikan " + nm + " sebagai Admin? Admin dapat menyetujui dan mencabut akun.")) update(id,{role:"admin"}, nm + " kini Admin."); break;
+      case "demote":  if(confirm("Ubah " + nm + " menjadi Karyawan biasa?")) update(id,{role:"karyawan"}, nm + " kini Karyawan."); break;
+    }
+  });
+  document.querySelectorAll(".stat").forEach(b => b.addEventListener("click", () => { filter = b.dataset.f; render(); }));
+  $("#all").addEventListener("click", () => { filter = "all"; render(); });
+  $("#q").addEventListener("input", render);
+  $("#refresh").addEventListener("click", load);
+
+  /* ===== Tab ===== */
+  function showTab(which){
+    const acc = which === "acc";
+    $("#tab-acc").setAttribute("aria-selected", acc);
+    $("#tab-stat").setAttribute("aria-selected", !acc);
+    $("#app").classList.toggle("hidden", !acc);
+    $("#stats-panel").classList.toggle("hidden", acc);
+    if(!acc) loadStats();
+  }
+  $("#tab-acc").addEventListener("click", () => showTab("acc"));
+  $("#tab-stat").addEventListener("click", () => showTab("stat"));
+
+  /* ===== Statistik SHE ===== */
+  let stats = [];
+  async function loadStats(){
+    const { data, error } = await Auth.client.from("she_stats")
+      .select("key,label,value,unit,note,sort_order,updated_at").order("sort_order",{ascending:true});
+    if(error){ toast("Gagal memuat statistik: " + Auth.friendly(error)); return; }
+    stats = data || [];
+    $("#stat-empty").classList.toggle("hidden", stats.length > 0);
+    $("#stat-rows").innerHTML = stats.map(r => `<tr data-key="${esc(r.key)}">
+      <td><span class="nm">${esc(r.label)}</span></td>
+      <td><input data-f="value" value="${esc(r.value)}" aria-label="Nilai ${esc(r.label)}" style="width:120px"></td>
+      <td><input data-f="unit" value="${esc(r.unit)}" aria-label="Satuan ${esc(r.label)}" style="width:90px"></td>
+      <td><input data-f="note" value="${esc(r.note)}" placeholder="mis. YTD 2026" aria-label="Keterangan ${esc(r.label)}" style="width:170px"></td>
+      <td>${r.updated_at ? fmt(r.updated_at) : "-"}</td>
+      <td><button class="btn teal sm" data-save="${esc(r.key)}" type="button">Simpan</button></td>
+    </tr>`).join("");
+  }
+  $("#stat-rows").addEventListener("click", async e => {
+    const b = e.target.closest("[data-save]"); if(!b) return;
+    const tr = b.closest("tr");
+    const patch = {
+      value: tr.querySelector('[data-f=value]').value.trim() || "-",
+      unit: tr.querySelector('[data-f=unit]').value.trim(),
+      note: tr.querySelector('[data-f=note]').value.trim(),
+      updated_at: new Date().toISOString()
+    };
+    b.disabled = true;
+    const { error } = await Auth.client.from("she_stats").update(patch).eq("key", b.dataset.save);
+    b.disabled = false;
+    if(error){ toast("Gagal menyimpan: " + Auth.friendly(error)); return; }
+    toast("Tersimpan.");
+    await loadStats();
+  });
+
+  async function init(){
+    if(!Auth.configured){ gate("Akun belum dikonfigurasi. Isi public/config.js terlebih dahulu (lihat PANDUAN-AKUN.md)."); return; }
+    const st = await Auth.getState();
+    if(!st){ location.replace("masuk.html?next=admin.html"); return; }
+    if(!Auth.isAdmin(st)){ gate("Akses ditolak. Halaman ini hanya untuk Admin yang sudah disetujui."); return; }
+    me = { id: st.session.user.id };
+    $("#gate").classList.add("hidden");
+    $("#atabs").classList.remove("hidden");
+    showTab("acc");
+    await load();
+  }
+  init();
+})();
+</script>
+</body>
+</html>

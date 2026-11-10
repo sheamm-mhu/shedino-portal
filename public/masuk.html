@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masuk | SHEDINO</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/auth.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html" aria-label="SHEDINO, ke beranda">
+      <img src="assets/logo-192.png" width="40" height="40" alt="">
+      <span class="tx">SHEDINO<small>Digital Information SHE</small></span>
+    </a>
+    <nav aria-label="Navigasi"><a href="index.html">Kembali ke beranda</a></nav>
+  </div>
+</header>
+
+<main class="auth">
+  <section class="auth-side" aria-label="Tentang akun SHEDINO">
+    <img src="assets/logo-192.png" alt="Logo SHEDINO">
+    <h1>Masuk ke SHEDINO</h1>
+    <p>Akun diperlukan untuk membuka layanan internal. Informasi umum tetap bisa dibaca tanpa akun.</p>
+    <ol class="steps">
+      <li><b>1</b><span>Daftar dengan email kantor dan ID karyawan Anda.</span></li>
+      <li><b>2</b><span>Admin memeriksa dan menyetujui pendaftaran Anda.</span></li>
+      <li><b>3</b><span>Setelah disetujui, semua layanan terbuka untuk Anda.</span></li>
+    </ol>
+  </section>
+
+  <section class="auth-main">
+    <div class="panel">
+      <div id="notconf" class="warnbox hidden" role="alert">
+        <b>Akun belum dikonfigurasi.</b> Isi <code>SUPABASE_URL</code> dan <code>SUPABASE_ANON_KEY</code> di <code>public/config.js</code>, lalu muat ulang halaman. Panduannya ada di <code>PANDUAN-AKUN.md</code>.
+      </div>
+
+      <!-- Sudah masuk -->
+      <div id="v-already" class="hidden">
+        <h2>Anda sudah masuk</h2>
+        <p class="sub" id="already-who"></p>
+        <div class="msg info" id="already-status"></div>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem">
+          <button class="btn" id="btn-continue" type="button">Lanjut</button>
+          <button class="btn ghost" id="btn-logout" type="button">Keluar</button>
+        </div>
+      </div>
+
+      <!-- Masuk / Daftar -->
+      <div id="v-main">
+        <div class="tabs" role="tablist" aria-label="Masuk atau daftar">
+          <button role="tab" id="tab-in" aria-selected="true" aria-controls="f-in" type="button">Masuk</button>
+          <button role="tab" id="tab-up" aria-selected="false" aria-controls="f-up" type="button">Daftar</button>
+        </div>
+        <div class="msg" id="msg" role="status" aria-live="polite"></div>
+
+        <form id="f-in" novalidate style="margin-top:1rem">
+          <h2>Selamat datang kembali</h2>
+          <p class="sub" style="margin:0">Masukkan email dan kata sandi Anda.</p>
+          <label>Email
+            <input id="in-email" type="email" autocomplete="username" required>
+          </label>
+          <label>Kata sandi
+            <input id="in-pass" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="btn" type="submit">Masuk</button>
+          <div class="foot"><button type="button" class="linkbtn" id="go-forgot">Lupa kata sandi?</button></div>
+        </form>
+
+        <form id="f-up" class="hidden" novalidate style="margin-top:1rem">
+          <h2>Buat akun baru</h2>
+          <p class="sub" style="margin:0">Akun akan aktif setelah disetujui admin.</p>
+          <label>Nama lengkap
+            <input id="up-name" autocomplete="name" required>
+          </label>
+          <label>ID karyawan <small>(opsional, membantu admin memverifikasi)</small>
+            <input id="up-eid" autocomplete="off">
+          </label>
+          <label>Email kantor
+            <input id="up-email" type="email" autocomplete="email" required>
+          </label>
+          <label>Kata sandi <small>(minimal 8 karakter)</small>
+            <input id="up-pass" type="password" autocomplete="new-password" minlength="8" required>
+          </label>
+          <label>Ulangi kata sandi
+            <input id="up-pass2" type="password" autocomplete="new-password" required>
+          </label>
+          <button class="btn" type="submit">Daftar</button>
+        </form>
+      </div>
+
+      <!-- Lupa kata sandi -->
+      <form id="f-forgot" class="hidden" novalidate>
+        <h2>Atur ulang kata sandi</h2>
+        <p class="sub" style="margin:0">Kami akan mengirim tautan pengaturan ulang ke email Anda.</p>
+        <div class="msg" id="msg-forgot" role="status" aria-live="polite"></div>
+        <label>Email
+          <input id="fg-email" type="email" autocomplete="username" required>
+        </label>
+        <button class="btn" type="submit">Kirim tautan</button>
+        <div class="foot"><button type="button" class="linkbtn" id="back-in">Kembali ke halaman masuk</button></div>
+      </form>
+
+      <!-- Kata sandi baru -->
+      <form id="f-newpass" class="hidden" novalidate>
+        <h2>Buat kata sandi baru</h2>
+        <p class="sub" style="margin:0">Pilih kata sandi baru untuk akun Anda.</p>
+        <div class="msg" id="msg-newpass" role="status" aria-live="polite"></div>
+        <label>Kata sandi baru <small>(minimal 8 karakter)</small>
+          <input id="np-pass" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label>Ulangi kata sandi baru
+          <input id="np-pass2" type="password" autocomplete="new-password" required>
+        </label>
+        <button class="btn" type="submit">Simpan kata sandi</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const params = new URLSearchParams(location.search);
+  const next = Auth.safeNext(params.get("next"));
+  const views = ["#v-already","#v-main","#f-forgot","#f-newpass"];
+
+  function show(id){
+    views.forEach(v => $(v).classList.toggle("hidden", v !== id));
+  }
+  function note(sel, type, text){
+    const el = $(sel);
+    el.className = "msg show " + type;
+    el.textContent = text;
+  }
+  function clearNote(sel){ const el=$(sel); el.className="msg"; el.textContent=""; }
+  function busy(form, on){
+    const b = form.querySelector("button[type=submit]");
+    b.disabled = on;
+    b.dataset.label = b.dataset.label || b.textContent;
+    b.textContent = on ? "Memproses..." : b.dataset.label;
+  }
+  function statusText(profile){
+    if(!profile) return "Profil akun belum ditemukan. Hubungi admin.";
+    if(profile.status === "pending") return "Akun Anda menunggu persetujuan admin. Layanan internal akan terbuka setelah disetujui.";
+    if(profile.status === "rejected") return "Pendaftaran Anda ditolak atau akses Anda dicabut. Hubungi admin untuk informasi.";
+    return "Akun Anda aktif" + (profile.role === "admin" ? " sebagai Admin." : ".");
+  }
+
+  /* Tab */
+  function tab(which){
+    const isIn = which === "in";
+    $("#tab-in").setAttribute("aria-selected", isIn);
+    $("#tab-up").setAttribute("aria-selected", !isIn);
+    $("#f-in").classList.toggle("hidden", !isIn);
+    $("#f-up").classList.toggle("hidden", isIn);
+    clearNote("#msg");
+  }
+  $("#tab-in").addEventListener("click", () => tab("in"));
+  $("#tab-up").addEventListener("click", () => tab("up"));
+  $("#go-forgot").addEventListener("click", () => { clearNote("#msg-forgot"); show("#f-forgot"); $("#fg-email").value = $("#in-email").value; $("#fg-email").focus(); });
+  $("#back-in").addEventListener("click", () => { show("#v-main"); tab("in"); });
+
+  if(!Auth.configured){
+    $("#notconf").classList.remove("hidden");
+    document.querySelectorAll("form button[type=submit]").forEach(b => b.disabled = true);
+  }
+
+  /* Masuk */
+  $("#f-in").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNote("#msg");
+    const email = $("#in-email").value.trim(), pass = $("#in-pass").value;
+    if(!email || !pass){ note("#msg","err","Isi email dan kata sandi."); return; }
+    busy(e.target, true);
+    try{
+      await Auth.signIn(email, pass);
+      location.href = next;
+    }catch(err){
+      note("#msg","err", Auth.friendly(err));
+      busy(e.target, false);
+    }
+  });
+
+  /* Daftar */
+  $("#f-up").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNote("#msg");
+    const name = $("#up-name").value.trim(), eid = $("#up-eid").value.trim();
+    const email = $("#up-email").value.trim(), p1 = $("#up-pass").value, p2 = $("#up-pass2").value;
+    if(!name || !email){ note("#msg","err","Nama lengkap dan email wajib diisi."); return; }
+    if(p1.length < 8){ note("#msg","err","Kata sandi minimal 8 karakter."); return; }
+    if(p1 !== p2){ note("#msg","err","Kata sandi dan pengulangannya tidak sama."); return; }
+    busy(e.target, true);
+    try{
+      const res = await Auth.signUp({ email, password:p1, fullName:name, employeeId:eid });
+      e.target.reset();
+      if(res.session){
+        note("#msg","ok","Pendaftaran berhasil. Akun Anda menunggu persetujuan admin.");
+        setTimeout(() => location.href = "index.html", 1800);
+      } else {
+        note("#msg","ok","Pendaftaran berhasil. Periksa email Anda untuk konfirmasi, lalu tunggu persetujuan admin.");
+      }
+    }catch(err){
+      note("#msg","err", Auth.friendly(err));
+    }
+    busy(e.target, false);
+  });
+
+  /* Lupa kata sandi */
+  $("#f-forgot").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNote("#msg-forgot");
+    const email = $("#fg-email").value.trim();
+    if(!email){ note("#msg-forgot","err","Isi email Anda."); return; }
+    busy(e.target, true);
+    try{
+      await Auth.sendReset(email);
+      note("#msg-forgot","ok","Jika email terdaftar, tautan pengaturan ulang telah dikirim. Periksa kotak masuk Anda.");
+    }catch(err){
+      note("#msg-forgot","err", Auth.friendly(err));
+    }
+    busy(e.target, false);
+  });
+
+  /* Kata sandi baru */
+  $("#f-newpass").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearNote("#msg-newpass");
+    const p1 = $("#np-pass").value, p2 = $("#np-pass2").value;
+    if(p1.length < 8){ note("#msg-newpass","err","Kata sandi minimal 8 karakter."); return; }
+    if(p1 !== p2){ note("#msg-newpass","err","Kata sandi dan pengulangannya tidak sama."); return; }
+    busy(e.target, true);
+    try{
+      await Auth.updatePassword(p1);
+      note("#msg-newpass","ok","Kata sandi berhasil diubah. Mengalihkan...");
+      setTimeout(() => location.href = "index.html", 1200);
+    }catch(err){
+      note("#msg-newpass","err", Auth.friendly(err));
+      busy(e.target, false);
+    }
+  });
+
+  /* Sudah masuk */
+  $("#btn-continue").addEventListener("click", () => location.href = next);
+  $("#btn-logout").addEventListener("click", async () => { await Auth.signOut(); location.href = "masuk.html"; });
+
+  async function init(){
+    if(!Auth.configured) return;
+    const recovery = /type=recovery/.test(location.hash);
+    Auth.client.auth.onAuthStateChange(ev => { if(ev === "PASSWORD_RECOVERY") show("#f-newpass"); });
+    if(recovery){ show("#f-newpass"); return; }
+    const st = await Auth.getState();
+    if(st){
+      $("#already-who").textContent = (st.profile && st.profile.full_name ? st.profile.full_name + " | " : "") + st.session.user.email;
+      $("#already-status").textContent = statusText(st.profile);
+      show("#v-already");
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>

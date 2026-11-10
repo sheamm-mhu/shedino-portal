@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Artikel | SHEDINO</title>
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header id="site-header" class="top"></header>
+
+<main>
+  <section class="page-head">
+    <div class="wrap">
+      <div class="crumbs" id="crumbs"><a href="index.html">Beranda</a> / <a href="media.html">Kabar &amp; Edukasi</a></div>
+    </div>
+  </section>
+
+  <section class="page-body">
+    <div class="wrap">
+      <article class="art" id="art"></article>
+      <div class="art related" id="related" hidden>
+        <h2>Baca juga</h2>
+        <div class="cards" id="related-cards"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/shared.js"></script>
+<script>
+(function () {
+  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent } = window.SH;
+  const id = new URLSearchParams(location.search).get("id");
+  const m = window.MEDIA.find(x => x.id === id);
+  const C = window.CONFIG;
+
+  if (!m) {
+    document.title = "Artikel tidak ditemukan | " + C.name;
+    $("#art").innerHTML = `<h1>Artikel tidak ditemukan</h1>
+      <p style="color:var(--slate);font-size:1.1rem;margin-top:1rem">Alamat yang Anda buka tidak cocok dengan artikel mana pun. Mungkin artikelnya sudah dipindahkan atau tautannya salah.</p>
+      <p style="margin-top:1.5rem"><a class="btn" style="text-decoration:none;display:inline-block" href="media.html">Lihat semua kabar &amp; edukasi</a></p>`;
+    return;
+  }
+
+  const tabName = m.tab === "kabar" ? "Kabar SHE" : "Edukasi";
+  document.title = m.title + " | " + C.name;
+  setNavCurrent(m.tab);
+  $("#crumbs").innerHTML = `<a href="index.html">Beranda</a> / <a href="media.html?tab=${m.tab}">${tabName}</a> / <span>${esc(m.category)}</span>`;
+
+  const body = (m.body || []).map(b => typeof b === "string" ? `<p>${esc(b)}</p>` : `<h2>${esc(b.h)}</h2>`).join("");
+  $("#art").innerHTML = `
+    <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><span>${tabName}</span><time datetime="${m.date}">${fmtDate(m.date)}</time></div>
+    <h1>${esc(m.title)}</h1>
+    ${cover(m)}
+    <div class="body">${body}</div>
+    <div class="tags" style="margin-top:1.5rem">${(m.tags || []).map(t => `<a class="tag" href="media.html?tag=${encodeURIComponent(t)}">#${esc(t)}</a>`).join("")}</div>
+    <div class="share">
+      <span class="lbl">Bagikan:</span>
+      <a class="btn sm2" id="sh-wa" style="text-decoration:none" target="_blank" rel="noopener" href="#">WhatsApp</a>
+      <button class="btn ghost sm2" id="sh-copy" type="button">Salin tautan</button>
+      <a class="btn ghost sm2" style="text-decoration:none" href="media.html?tab=${m.tab}">Kembali ke daftar</a>
+    </div>`;
+
+  const url = location.href.split("#")[0];
+  $("#sh-wa").href = "https://wa.me/?text=" + encodeURIComponent(m.title + "\n" + url);
+  $("#sh-copy").addEventListener("click", async e => {
+    const b = e.currentTarget;
+    try { await navigator.clipboard.writeText(url); b.textContent = "Tautan disalin"; }
+    catch (err) { window.prompt("Salin tautan ini:", url); }
+    setTimeout(() => { b.textContent = "Salin tautan"; }, 2000);
+  });
+
+  const rel = window.MEDIA
+    .filter(x => x.id !== m.id)
+    .map(x => ({ x, s: (x.category === m.category ? 2 : 0) + (x.tab === m.tab ? 1 : 0) + (x.tags || []).filter(t => (m.tags || []).includes(t)).length }))
+    .sort((a, b) => b.s - a.s || b.x.date.localeCompare(a.x.date))
+    .slice(0, 3).map(r => r.x);
+  if (rel.length) { $("#related").hidden = false; $("#related-cards").innerHTML = rel.map(cardHTML).join(""); }
+})();
+</script>
+</body>
+</html>

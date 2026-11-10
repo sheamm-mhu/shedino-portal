@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layanan | SHEDINO</title>
+<meta name="description" content="Semua layanan SHEDINO: layanan administrasi SHE, pusat pengetahuan, dan analitik keselamatan, kesehatan, dan lingkungan.">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header id="site-header" class="top"></header>
+
+<main>
+  <section class="page-head" aria-labelledby="h1">
+    <div class="wrap">
+      <div class="crumbs"><a href="index.html">Beranda</a> / Layanan</div>
+      <h1 id="h1">Layanan</h1>
+      <p>Tiga kelompok fungsi dalam satu tempat: layanan administrasi, pusat pengetahuan, dan analitik. Layanan "Perlu akun" hanya terbuka untuk akun yang sudah disetujui.</p>
+    </div>
+  </section>
+
+  <section class="page-body">
+    <div class="wrap">
+      <div class="toolbar">
+        <div class="tabs" id="tabs" role="group" aria-label="Filter kelompok layanan"></div>
+        <label class="sr" for="sq">Cari layanan</label>
+        <input id="sq" type="search" placeholder="Cari layanan, misalnya APD atau hazard">
+      </div>
+      <p class="result-info" id="info" role="status" aria-live="polite"></p>
+      <div id="groups"></div>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/shared.js"></script>
+<script>
+(function () {
+  const { $, $$, esc, I, icon, GROUP_TONE, openService, flashHash } = window.SH;
+  document.title = "Layanan | " + window.CONFIG.name;
+
+  const GROUPS = [
+    { name: "Layanan", note: "Pengajuan dan pelaporan administrasi SHE." },
+    { name: "Pengetahuan", note: "Prosedur, pelatihan, dan sumber belajar." },
+    { name: "Analitik", note: "Data dan pemantauan untuk pengambilan keputusan." }
+  ];
+  const params = new URLSearchParams(location.search);
+  let active = GROUPS.some(g => g.name === params.get("g")) ? params.get("g") : "Semua";
+
+  function renderTabs() {
+    $("#tabs").innerHTML = ["Semua", ...GROUPS.map(g => g.name)].map(n =>
+      `<button class="tab" data-g="${n}" aria-pressed="${n === active}">${n}</button>`).join("");
+  }
+
+  function svcHTML(s) {
+    return `<button class="svc" data-svc="${s.id}" id="${s.id}">
+      <span class="ib t-${GROUP_TONE[s.group] || "gray"}">${icon(I[s.icon])}</span>
+      <span>
+        <h3>${esc(s.title)} <span class="badge ${s.login ? "lock" : "open"}">${s.login ? "Perlu akun" : "Terbuka"}</span></h3>
+        <p>${esc(s.desc)}</p>
+      </span></button>`;
+  }
+
+  function render() {
+    const q = $("#sq").value.trim().toLowerCase();
+    const list = window.SERVICES.filter(s =>
+      (active === "Semua" || s.group === active) &&
+      (!q || (s.title + " " + s.desc + " " + s.group).toLowerCase().includes(q)));
+    let html = "";
+    GROUPS.forEach(g => {
+      const items = list.filter(s => s.group === g.name);
+      if (!items.length) return;
+      html += `<div class="grp-head"><h2>${g.name}</h2><span>${items.length} layanan</span></div>
+        <p class="grp-note">${esc(g.note)}</p>
+        <div class="svc-grid">${items.map(svcHTML).join("")}</div>`;
+    });
+    $("#groups").innerHTML = html || `<p class="empty">Tidak ada layanan yang cocok. Coba kata kunci lain atau pilih Semua.</p>`;
+    $("#info").textContent = list.length + " layanan ditampilkan";
+  }
+
+  $("#tabs").addEventListener("click", e => {
+    const b = e.target.closest(".tab"); if (!b) return;
+    active = b.dataset.g; renderTabs(); render();
+    const u = new URL(location.href);
+    if (active === "Semua") u.searchParams.delete("g"); else u.searchParams.set("g", active);
+    history.replaceState(null, "", u);
+  });
+  $("#sq").addEventListener("input", render);
+  $("#groups").addEventListener("click", e => { const b = e.target.closest(".svc"); if (b) openService(b.dataset.svc); });
+
+  renderTabs(); render(); flashHash();
+})();
+</script>
+</body>
+</html>
