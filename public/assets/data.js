@@ -8,15 +8,28 @@
 window.CONFIG = {
   name: "SHEDINO",
   tagline: "Digital Information SHE",
-  company: "PT ANTAREJA MAHADA MAKMUR",
-  address: "Kantor SHE, Area Operasional (Mine Officer Beruaq)",
+  company: "PT Nama Perusahaan",
+  address: "Kantor SHE, Area Operasional (isi alamat lengkap Anda)",
   mapsUrl: "",                       // tautan Google Maps (opsional)
   teamPhoto: "",                     // foto tim SHE untuk bagian Tentang, misalnya "media/tim-she.jpg" (opsional)
-  email: "safety.officer01@ppa.co.id",
-  whatsapp: "6282256942224",         // format internasional, tanpa + dan tanpa 0 di depan
-  whatsappLabel: "+62 822-5694-2224",
-  hours: "Senin sampai Minggu, 07.00 - 17.00 WIB",
-  pinned: { title: "Pemeliharaan platform pelatihan", text: "Sabtu, 02.00 - 04.00 WIB. Pendaftaran pelatihan ditunda sementara." }
+  email: "she@perusahaan.co.id",
+  whatsapp: "6281234567890",         // format internasional, tanpa + dan tanpa 0 di depan
+  whatsappLabel: "+62 812-3456-7890",
+  hours: "Senin sampai Jumat, 08.00 - 17.00 WIB",
+  pinned: { title: "Pemeliharaan platform pelatihan", text: "Sabtu, 02.00 - 04.00 WIB. Pendaftaran pelatihan ditunda sementara." },
+
+  /* Teks halaman. Gunakan {nama}, {tagline}, dan {perusahaan} untuk menyisipkan nilai di atas. */
+  heroTitle: "Semua informasi SHE, satu pintu.",
+  heroLead: "Cari layanan, prosedur, kabar, dan edukasi keselamatan, kesehatan, dan lingkungan tanpa perlu bertanya ke banyak orang.",
+  servicesIntro: "Layanan, pengetahuan, dan analitik untuk mendukung pekerjaan yang aman. Layanan \"Perlu login\" hanya terbuka untuk akun yang sudah disetujui.",
+  aboutP1: "{nama} ({tagline}) adalah portal digital resmi Departemen SHE {perusahaan}. Portal ini dirancang untuk mewujudkan lingkungan kerja yang aman, sehat, dan ramah lingkungan dengan menyatukan layanan, pengetahuan, dan analitik dalam satu platform terpadu.",
+  aboutP2: "Dengan satu pintu informasi, koordinasi keselamatan, pemantauan kesehatan pekerja, dan pelestarian lingkungan menjadi lebih cepat, jelas, dan terdokumentasi.",
+  pillars: [
+    { title: "Keselamatan kerja", text: "Mengutamakan pencegahan kecelakaan dan perlindungan maksimal bagi setiap pekerja di lapangan." },
+    { title: "Kesehatan kerja", text: "Menjaga kesehatan fisik dan mental pekerja melalui pemeriksaan berkala dan lingkungan kerja yang bersih." },
+    { title: "Lingkungan", text: "Berkomitmen menjaga alam sekitar, mengelola limbah dengan baik, dan menggunakan sumber daya secara bijak." },
+    { title: "Informasi digital", text: "Layanan cepat seperti perizinan, pelaporan hazard, dan pencarian prosedur secara real-time untuk mendukung nihil kecelakaan." }
+  ]
 };
 
 /* ---------- 2. Status sistem (papan informasi di beranda) ---------- */
@@ -43,31 +56,42 @@ window.STAT_DEFS = [
   { key: "inspeksi",   label: "Inspeksi terlaksana",   unit: "%",       tone: "amber" }
 ];
 
-/* ---------- 4. Layanan ----------
+/* ---------- 4a. Tab layanan ----------
+   Tab di atas kartu layanan. name   : nama tab (dipakai juga di kolom "group" tiap layanan)
+   icon : ikon tab | tone : blue, teal, amber, red, atau gray (warna ikon kartu)
+   url  : jika diisi, tab menjadi TAUTAN ke alamat itu (bukan filter) */
+window.GROUPS = [
+  { id:"layanan",     name:"Layanan",     icon:"clip",   tone:"blue",  url:"", note:"Pengajuan dan pelaporan administrasi SHE." },
+  { id:"pengetahuan", name:"Pengetahuan", icon:"book",   tone:"teal",  url:"", note:"Prosedur, pelatihan, dan sumber belajar." },
+  { id:"analitik",    name:"Analitik",    icon:"chart",  tone:"amber", url:"", note:"Data dan pemantauan untuk pengambilan keputusan." }
+];
+
+/* ---------- 4b. Layanan ----------
    group : "Layanan" | "Pengetahuan" | "Analitik"
    login : true = hanya untuk akun yang sudah disetujui
    url   : alamat layanan sebenarnya (https://... atau halaman di situs ini)
+   btnLabel : tulisan pada tombol kartu, misalnya "Buka Layanan Visitor"
    featured : true = tampil di beranda */
 window.SERVICES = [
-  { id:"s1", group:"Layanan", icon:"idcard", login:false, featured:true,  title:"Pendaftaran tamu", desc:"Ajukan izin kunjungan tamu ke area operasional dan pantau statusnya." },
-  { id:"s2", group:"Layanan", icon:"truck",  login:true,  featured:false, title:"Komisioning unit", desc:"Ajukan pemeriksaan kelayakan kendaraan dan alat berat sebelum beroperasi." },
-  { id:"s3", group:"Layanan", icon:"helmet", login:true,  featured:false, title:"Permintaan APD", desc:"Cek jadwal ganti, riwayat pengambilan, dan ajukan alat pelindung diri." },
-  { id:"s4", group:"Layanan", icon:"clip",   login:true,  featured:true,  title:"Izin kerja khusus", desc:"Pilih jenis izin sesuai aktivitas atau pantau status persetujuannya." },
-  { id:"s5", group:"Layanan", icon:"alert",  login:true,  featured:true,  title:"Laporan hazard", desc:"Laporkan kondisi berbahaya di lapangan beserta foto dan lokasinya." },
-  { id:"s6", group:"Layanan", icon:"stop",   login:true,  featured:true,  title:"Stop Work Authority", desc:"Hentikan, laporkan, dan perbaiki pekerjaan yang tidak aman secara tercatat." },
-  { id:"s7", group:"Layanan", icon:"sign",   login:false, featured:false, title:"Pemesanan rambu", desc:"Ajukan, pantau, dan unggah bukti pemasangan rambu atau stiker keselamatan." },
-  { id:"s8", group:"Layanan", icon:"flag",   login:true,  featured:false, title:"Pelaporan insiden", desc:"Laporkan insiden atau hampir celaka agar dapat segera ditindaklanjuti." },
+  { id:"s1", group:"Layanan", icon:"idcard", login:false, featured:true,  title:"Pendaftaran tamu", btnLabel:"Daftarkan Tamu", desc:"Ajukan izin kunjungan tamu ke area operasional dan pantau statusnya." },
+  { id:"s2", group:"Layanan", icon:"truck",  login:true,  featured:false, title:"Komisioning unit", btnLabel:"Mulai Komisioning", desc:"Ajukan pemeriksaan kelayakan kendaraan dan alat berat sebelum beroperasi." },
+  { id:"s3", group:"Layanan", icon:"helmet", login:true,  featured:false, title:"Permintaan APD", btnLabel:"Cek & Ajukan APD", desc:"Cek jadwal ganti, riwayat pengambilan, dan ajukan alat pelindung diri." },
+  { id:"s4", group:"Layanan", icon:"clip",   login:true,  featured:true,  title:"Izin kerja khusus", btnLabel:"Buka Layanan Izin Kerja", desc:"Pilih jenis izin sesuai aktivitas atau pantau status persetujuannya." },
+  { id:"s5", group:"Layanan", icon:"alert",  login:true,  featured:true,  title:"Laporan hazard", btnLabel:"Buat Laporan Hazard", desc:"Laporkan kondisi berbahaya di lapangan beserta foto dan lokasinya." },
+  { id:"s6", group:"Layanan", icon:"stop",   login:true,  featured:true,  title:"Stop Work Authority", btnLabel:"Buka Stop Work Authority", desc:"Hentikan, laporkan, dan perbaiki pekerjaan yang tidak aman secara tercatat." },
+  { id:"s7", group:"Layanan", icon:"sign",   login:false, featured:false, title:"Pemesanan rambu", btnLabel:"Pesan Rambu", desc:"Ajukan, pantau, dan unggah bukti pemasangan rambu atau stiker keselamatan." },
+  { id:"s8", group:"Layanan", icon:"flag",   login:true,  featured:false, title:"Pelaporan insiden", btnLabel:"Laporkan Insiden", desc:"Laporkan insiden atau hampir celaka agar dapat segera ditindaklanjuti." },
 
-  { id:"k1", group:"Pengetahuan", icon:"search", login:true,  featured:true,  title:"Pencarian prosedur", desc:"Cari cepat SOP, instruksi kerja, formulir, dan dokumen standar." },
-  { id:"k2", group:"Pengetahuan", icon:"book",   login:true,  featured:false, title:"Pelatihan SHE", desc:"Akses platform pelatihan dan edukasi keselamatan, kesehatan, dan lingkungan." },
-  { id:"k3", group:"Pengetahuan", icon:"news",   login:true,  featured:false, title:"Internal memo", desc:"Baca memo manajemen yang berkaitan dengan keselamatan, kesehatan, dan lingkungan." },
-  { id:"k4", group:"Pengetahuan", icon:"shield", login:true,  featured:false, title:"Kartu kontrol kritis", desc:"Ringkasan pengendalian bahaya kritis untuk setiap jenis pekerjaan." },
-  { id:"k5", group:"Pengetahuan", icon:"file",   login:false, featured:false, title:"Pustaka dokumen", desc:"Kebijakan, panduan, dan formulir resmi yang berlaku.", url:"index.html#dokumen" },
+  { id:"k1", group:"Pengetahuan", icon:"search", login:true,  featured:true,  title:"Pencarian prosedur", btnLabel:"Cari Prosedur", desc:"Cari cepat SOP, instruksi kerja, formulir, dan dokumen standar." },
+  { id:"k2", group:"Pengetahuan", icon:"book",   login:true,  featured:false, title:"Pelatihan SHE", btnLabel:"Buka Pelatihan", desc:"Akses platform pelatihan dan edukasi keselamatan, kesehatan, dan lingkungan." },
+  { id:"k3", group:"Pengetahuan", icon:"news",   login:true,  featured:false, title:"Internal memo", btnLabel:"Baca Memo", desc:"Baca memo manajemen yang berkaitan dengan keselamatan, kesehatan, dan lingkungan." },
+  { id:"k4", group:"Pengetahuan", icon:"shield", login:true,  featured:false, title:"Kartu kontrol kritis", btnLabel:"Lihat Kartu Kontrol", desc:"Ringkasan pengendalian bahaya kritis untuk setiap jenis pekerjaan." },
+  { id:"k5", group:"Pengetahuan", icon:"file",   login:false, featured:false, title:"Pustaka dokumen", btnLabel:"Buka Pustaka Dokumen", desc:"Kebijakan, panduan, dan formulir resmi yang berlaku.", url:"index.html#dokumen" },
 
-  { id:"a1", group:"Analitik", icon:"chart",   login:true, featured:true,  title:"Statistik SHE", desc:"Pantau indikator utama seperti insiden, AFR, cidera, dan closing rate hazard.", url:"index.html#statistik" },
-  { id:"a2", group:"Analitik", icon:"pulse",   login:true, featured:false, title:"Analisis hazard", desc:"Closing rate, validasi hazard, dan deteksi laporan ganda dalam satu halaman." },
-  { id:"a3", group:"Analitik", icon:"chart",   login:true, featured:false, title:"Indeks kualitas program", desc:"Pantau skor kualitas penerapan program keselamatan harian." },
-  { id:"a4", group:"Analitik", icon:"monitor", login:true, featured:false, title:"Monitoring inspeksi", desc:"Lihat progres inspeksi terjadwal dan temuan yang belum ditutup." }
+  { id:"a1", group:"Analitik", icon:"chart",   login:true, featured:true,  title:"Statistik SHE", btnLabel:"Lihat Statistik", desc:"Pantau indikator utama seperti insiden, AFR, cidera, dan closing rate hazard.", url:"index.html#statistik" },
+  { id:"a2", group:"Analitik", icon:"pulse",   login:true, featured:false, title:"Analisis hazard", btnLabel:"Buka Analisis", desc:"Closing rate, validasi hazard, dan deteksi laporan ganda dalam satu halaman." },
+  { id:"a3", group:"Analitik", icon:"chart",   login:true, featured:false, title:"Indeks kualitas program", btnLabel:"Lihat Indeks", desc:"Pantau skor kualitas penerapan program keselamatan harian." },
+  { id:"a4", group:"Analitik", icon:"monitor", login:true, featured:false, title:"Monitoring inspeksi", btnLabel:"Buka Monitoring", desc:"Lihat progres inspeksi terjadwal dan temuan yang belum ditutup." }
 ];
 
 /* ---------- 5. Kabar SHE dan Edukasi ----------
@@ -241,3 +265,10 @@ window.FAQ = [
   { q:"Apakah status pengajuan di portal sesuai kondisi sebenarnya?", a:"Ya. Untuk layanan yang sudah terhubung, status diperbarui langsung oleh admin atau penanggung jawab layanan, sehingga dapat dijadikan acuan utama." },
   { q:"Siapa yang dihubungi jika mengalami kendala?", a:"Hubungi admin lewat WhatsApp atau formulir kontak di bagian bawah halaman, atau datang langsung ke kantor SHE pada jam layanan." }
 ];
+
+/* ---------- 8. Salinan isi bawaan ----------
+   Dipakai tombol "Impor data contoh" di panel Admin. Jangan diubah. */
+window.DEFAULTS = JSON.parse(JSON.stringify({
+  CONFIG: window.CONFIG, STATUS: window.STATUS, GROUPS: window.GROUPS, SERVICES: window.SERVICES,
+  MEDIA: window.MEDIA, DOCS: window.DOCS, FAQ: window.FAQ, CATEGORIES: window.CATEGORIES
+}));

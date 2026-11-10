@@ -55,9 +55,11 @@
 <script src="config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/content.js"></script>
 <script src="assets/shared.js"></script>
 <script>
-(function () {
+(async function () {
+  await window.contentReady;
   const { $, $$, esc, cardHTML, setNavCurrent } = window.SH;
   const PAGE_SIZE = 9;
   const TABS = [

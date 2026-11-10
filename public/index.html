@@ -25,8 +25,8 @@
 <section class="hero" aria-labelledby="judul">
   <div class="wrap">
     <div>
-      <h1 id="judul" class="hero-in">Semua informasi SHE, satu pintu.</h1>
-      <p class="lead hero-in d2">Cari layanan, prosedur, kabar, dan edukasi keselamatan, kesehatan, dan lingkungan tanpa perlu bertanya ke banyak orang.</p>
+      <h1 id="judul" class="hero-in"></h1>
+      <p class="lead hero-in d2" id="hero-lead"></p>
 
       <div class="search hero-in d2" role="search">
         <label class="sr" for="q">Cari layanan, dokumen, kabar, atau edukasi</label>
@@ -77,11 +77,12 @@
     <div class="sec-head">
       <div>
         <h2 id="h-layanan">Layanan</h2>
-        <p>Layanan, pengetahuan, dan analitik untuk mendukung pekerjaan yang aman. Layanan "Perlu akun" hanya terbuka untuk akun yang sudah disetujui.</p>
+        <p id="svc-intro"></p>
       </div>
       <a class="more-link" href="layanan.html" id="all-svc">Lihat semua layanan</a>
     </div>
-    <div class="svc-grid" id="svc"></div>
+    <div class="gtabs-wrap"><div class="gtabs" id="gtabs" role="group" aria-label="Kelompok layanan"></div></div>
+    <div class="scards" id="svc"></div>
   </div>
 </section>
 
@@ -152,17 +153,12 @@
     <div class="about-top">
       <div>
         <h2 id="h-tentang" style="font-size:clamp(1.9rem,3.6vw,2.7rem);font-weight:800">Tentang <span data-bind="name"></span></h2>
-        <p><b data-bind="name"></b> (<span data-bind="tagline"></span>) adalah portal digital resmi Departemen SHE <span data-bind="company"></span>. Portal ini dirancang untuk mewujudkan lingkungan kerja yang aman, sehat, dan ramah lingkungan dengan menyatukan layanan, pengetahuan, dan analitik dalam satu platform terpadu.</p>
-        <p>Dengan satu pintu informasi, koordinasi keselamatan, pemantauan kesehatan pekerja, dan pelestarian lingkungan menjadi lebih cepat, jelas, dan terdokumentasi.</p>
+        <p id="about-p1"></p>
+        <p id="about-p2"></p>
       </div>
       <div class="hero-img" id="team"></div>
     </div>
-    <div class="pillars">
-      <div class="pillar"><span class="ib t-blue" id="pi1"></span><h3>Keselamatan kerja</h3><p>Mengutamakan pencegahan kecelakaan dan perlindungan maksimal bagi setiap pekerja di lapangan.</p></div>
-      <div class="pillar"><span class="ib t-teal" id="pi2"></span><h3>Kesehatan kerja</h3><p>Menjaga kesehatan fisik dan mental pekerja melalui pemeriksaan berkala dan lingkungan kerja yang bersih.</p></div>
-      <div class="pillar"><span class="ib t-amber" id="pi3"></span><h3>Lingkungan</h3><p>Berkomitmen menjaga alam sekitar, mengelola limbah dengan baik, dan menggunakan sumber daya secara bijak.</p></div>
-      <div class="pillar"><span class="ib t-red" id="pi4"></span><h3>Informasi digital</h3><p>Layanan cepat seperti perizinan, pelaporan hazard, dan pencarian prosedur secara real-time untuk mendukung nihil kecelakaan.</p></div>
-    </div>
+    <div class="pillars" id="pillars"></div>
   </div>
 </section>
 
@@ -221,10 +217,12 @@
 <script src="config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/content.js"></script>
 <script src="assets/shared.js"></script>
 <script>
-(function () {
-  const { $, $$, esc, I, icon, fmtDate, GROUP_TONE, cover, cardHTML, openDialog, openService, ensureAccess, spy, flashHash } = window.SH;
+(async function () {
+  await window.contentReady;
+  const { $, $$, esc, I, icon, fmtDate, groupList, groupByName, serviceCardHTML, groupTabsHTML, tx, cover, cardHTML, openDialog, openService, ensureAccess, spy, flashHash } = window.SH;
   const C = window.CONFIG;
 
   /* Isi pengaturan */
@@ -232,6 +230,16 @@
   $$("[data-bind=tagline]").forEach(e => e.textContent = C.tagline);
   $$("[data-bind=company]").forEach(e => e.textContent = C.company);
   document.title = C.name + " | " + C.tagline;
+  $("#judul").textContent = tx(C.heroTitle);
+  $("#hero-lead").textContent = tx(C.heroLead);
+  $("#svc-intro").textContent = tx(C.servicesIntro);
+  $("#about-p1").textContent = tx(C.aboutP1);
+  $("#about-p2").textContent = tx(C.aboutP2);
+  const PILLAR_STYLE = [["blue", "shield"], ["teal", "pulse"], ["amber", "leaf"], ["red", "monitor"]];
+  $("#pillars").innerHTML = (C.pillars || []).map((p, i) => {
+    const [tone, ic] = PILLAR_STYLE[i % PILLAR_STYLE.length];
+    return `<div class="pillar"><span class="ib t-${tone}">${icon(I[ic])}</span><h3>${esc(tx(p.title))}</h3><p>${esc(tx(p.text))}</p></div>`;
+  }).join("");
   $("#today").textContent = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
   $("#pin-title").textContent = C.pinned.title;
   $("#pin-text").textContent = C.pinned.text;
@@ -245,10 +253,6 @@
   $("#ci-mail").innerHTML = icon(I.mail);
   $("#ci-pin").innerHTML = icon(I.pin);
   $("#ci-clock").innerHTML = icon(I.clock);
-  $("#pi1").innerHTML = icon(I.shield);
-  $("#pi2").innerHTML = icon(I.pulse);
-  $("#pi3").innerHTML = icon(I.leaf);
-  $("#pi4").innerHTML = icon(I.monitor);
   $("#team").innerHTML = C.teamPhoto
     ? `<img class="photo" src="${esc(C.teamPhoto)}" alt="Tim SHE" onerror="this.remove()">`
     : `<div><img class="logo" src="assets/logo-192.png" alt=""><b style="color:#fff;font-family:var(--display);font-size:1.4rem">${esc(C.name)}</b><br><span>${esc(C.tagline)}</span></div>`;
@@ -286,18 +290,23 @@
   $("#stats").addEventListener("click", e => { if (e.target.closest("[data-lock]")) ensureAccess("Statistik SHE"); });
   renderStats();
 
-  /* ===== Layanan (unggulan) ===== */
-  const featured = window.SERVICES.filter(s => s.featured);
-  $("#svc").innerHTML = featured.map(s => `
-    <button class="svc" data-svc="${s.id}" id="${s.id}">
-      <span class="ib t-${GROUP_TONE[s.group] || "gray"}">${icon(I[s.icon])}</span>
-      <span>
-        <h3>${esc(s.title)} <span class="badge ${s.login ? "lock" : "open"}">${s.login ? "Perlu akun" : "Terbuka"}</span></h3>
-        <p>${esc(s.desc)}</p>
-      </span>
-    </button>`).join("");
+  /* ===== Layanan: tab pil + kartu ===== */
+  const filterTabs = groupList().filter(g => !g.url);
+  let activeGroup = filterTabs.length ? filterTabs[0].name : "";
+  function renderServices() {
+    $("#gtabs").innerHTML = groupTabsHTML(activeGroup, false);
+    const inGroup = window.SERVICES.filter(s => s.group === activeGroup);
+    const feat = inGroup.filter(s => s.featured);
+    const list = (feat.length ? feat : inGroup).slice(0, 6);
+    $("#svc").innerHTML = list.length ? list.map(serviceCardHTML).join("") : '<p class="empty">Belum ada layanan pada tab ini.</p>';
+  }
+  $("#gtabs").addEventListener("click", e => {
+    const b = e.target.closest("button[data-g]"); if (!b) return;
+    activeGroup = b.dataset.g; renderServices();
+  });
   $("#all-svc").textContent = "Lihat semua layanan (" + window.SERVICES.length + ")";
-  $("#svc").addEventListener("click", e => { const b = e.target.closest(".svc"); if (b) openService(b.dataset.svc); });
+  $("#svc").addEventListener("click", e => { const b = e.target.closest(".sbtn"); if (b) openService(b.dataset.svc); });
+  renderServices();
 
   /* ===== Kabar & Edukasi ===== */
   const byDate = (a, b) => b.date.localeCompare(a.date);

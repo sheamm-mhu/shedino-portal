@@ -59,8 +59,27 @@ Kartu statistik di beranda (insiden, AFR, cidera, dan lainnya) terkunci untuk pe
 Jika tab Statistik kosong, jalankan ulang seluruh isi `supabase/schema.sql` di SQL Editor (aman dijalankan berulang, angka yang sudah diisi tidak ditimpa).
 Daftar indikator dan warnanya diatur di `public/assets/data.js` pada `STAT_DEFS`. Tambah indikator baru dengan menambah baris di `STAT_DEFS` dan satu baris di tabel `she_stats`.
 
+## Mengelola konten lewat panel Admin
+Artikel, layanan, dokumen, FAQ, pengaturan, dan foto diedit langsung di situs.
+1. Jalankan ulang seluruh isi `supabase/schema.sql` di SQL Editor (membuat tabel konten dan penyimpanan foto bernama `site-media`). Aman diulang.
+2. Masuk sebagai admin, klik **Admin**, lalu pilih tab **Kabar & Edukasi**, **Layanan**, **Dokumen**, **FAQ**, atau **Pengaturan**.
+3. Pada tab yang masih kosong, klik **Impor data contoh** sekali agar isi contoh tersalin ke database.
+4. Klik **Tambah** atau **Edit**. Untuk foto, klik **Choose File** lalu pilih gambar. Foto otomatis dikecilkan dan diunggah. Klik **Simpan**.
+
+Tab dan kartu layanan:
+- Tab **Tab Layanan** mengatur tab pil di atas kartu (misalnya Layanan, Pengetahuan, Analitik). Isi kolom **Tautan tab** bila ingin tab itu menuju halaman atau situs lain, bukan menyaring kartu.
+- Tab **Layanan** mengatur kartunya. Kolom **Tulisan pada tombol** dan **Tautan tombol** menentukan teks dan tujuan tombol di kartu.
+- Jika nama tab diganti, layanan di tab itu ikut pindah otomatis. Jika tab dihapus, layanannya tampil sebagai kelompok tambahan sampai dipindahkan.
+- Di tab **Pengaturan** Anda juga mengubah teks halaman depan. Gunakan `{nama}`, `{tagline}`, dan `{perusahaan}` bila ingin nilai otomatis disisipkan.
+
+Catatan:
+- Foto dan file tersimpan di Supabase Storage (bucket `site-media`, paket gratis 1 GB). Menghapus atau mengganti foto di formulir tidak menghapus file lamanya dari penyimpanan. Bersihkan lewat menu **Storage** di Supabase bila perlu.
+- Artikel atau dokumen dengan kotak **Tayangkan di situs** tidak dicentang berstatus draf dan hanya terlihat oleh admin.
+- Jika seluruh data sebuah tab dihapus, situs kembali memakai isi contoh dari `data.js`.
+- Hanya alamat yang diawali `https://` atau alamat di dalam situs yang diterima pada kolom alamat layanan dan file.
+
 ## Memperbarui dari versi lama
-Jika Anda sudah punya project Supabase dari versi sebelumnya, jalankan ulang `supabase/schema.sql` agar tabel statistik dibuat. Akun yang sudah ada tidak terpengaruh. Saat mengunggah ke GitHub, jangan menimpa `public/config.js` yang sudah Anda isi.
+Jika Anda sudah punya project Supabase dari versi sebelumnya, jalankan ulang `supabase/schema.sql` agar tabel statistik dibuat. Akun yang sudah ada tidak terpengaruh. Saat mengunggah ke GitHub, jangan menimpa `public/config.js` yang sudah Anda isi (gunakan paket "update tanpa config" jika tersedia).
 
 ## Cara akun dibuat
 - **Daftar sendiri:** karyawan membuka *Masuk > Daftar*. Akun berstatus *Menunggu* sampai admin menekan **Setujui**.

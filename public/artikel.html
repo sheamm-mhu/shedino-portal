@@ -39,9 +39,11 @@
 <script src="config.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/content.js"></script>
 <script src="assets/shared.js"></script>
 <script>
-(function () {
+(async function () {
+  await window.contentReady;
   const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent } = window.SH;
   const id = new URLSearchParams(location.search).get("id");
   const m = window.MEDIA.find(x => x.id === id);

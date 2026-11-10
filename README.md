@@ -13,7 +13,9 @@ Portal informasi digital Safety, Health & Environment. Situs statis (HTML/CSS/JS
 | `public/admin.html` | Panel Admin: setujui akun, atur peran, isi statistik SHE |
 
 ## Struktur file
-- `public/assets/data.js`   : **semua konten** (pengaturan, layanan, artikel, dokumen, FAQ, definisi statistik)
+- `public/assets/data.js`   : isi bawaan dan cadangan (pengaturan, layanan, artikel, dokumen, FAQ, definisi statistik)
+- `public/assets/content.js`: memuat konten dari database
+- `public/assets/admin-content.js`: editor konten di panel Admin
 - `public/assets/site.css`  : gaya situs
 - `public/assets/shared.js` : header, footer, tombol WhatsApp, dialog, status akun
 - `public/assets/auth.js`   : modul akun (Supabase)
@@ -22,7 +24,20 @@ Portal informasi digital Safety, Health & Environment. Situs statis (HTML/CSS/JS
 - `PANDUAN-AKUN.md`         : langkah mengaktifkan akun dan statistik
 - `vercel.json`             : konfigurasi Vercel
 
-## Mengubah konten
+## Mengubah konten lewat panel Admin (disarankan)
+Masuk sebagai admin, klik **Admin**, lalu pilih tab:
+- **Kabar & Edukasi**: tambah, edit, hapus artikel. Foto sampul diunggah langsung (otomatis dikecilkan), isi artikel disusun dari paragraf dan subjudul.
+- **Tab Layanan**: tab pil di atas kartu layanan. Tambah, ganti nama, atur ikon, warna, dan urutan. Jika kolom **Tautan tab** diisi, tab itu menjadi tautan ke halaman lain (bukan penyaring).
+- **Layanan**: kartu layanan dengan nama, tab, ikon, deskripsi, **tulisan tombol** (misalnya "Buka Layanan Visitor"), **tautan tombol**, hak akses (Perlu login atau Terbuka), tampil di beranda atau tidak, dan urutan.
+- **Dokumen**: unggah file PDF, Word, Excel, atau PowerPoint (maksimal 10 MB) agar tombol Unduh berfungsi.
+- **FAQ**: pertanyaan dan jawaban.
+- **Pengaturan**: nama perusahaan, alamat, email, WhatsApp, jam layanan, pengumuman tersemat, status sistem, foto tim, **teks halaman depan** (judul besar, kalimat pembuka, bagian Tentang, dan pilar), serta **daftar kategori artikel**.
+- **Statistik SHE** dan **Akun** seperti sebelumnya.
+
+Perubahan langsung tampil di situs tanpa deploy ulang. Pertama kali, klik **Impor data contoh** pada tab yang masih kosong agar isi contoh dari `data.js` tersalin ke database dan bisa Anda edit.
+Jika database belum diatur atau tabel kosong, situs memakai isi dari `public/assets/data.js` sebagai cadangan.
+
+## Mengubah konten lewat file (cara lama)
 Semua teks yang sering berubah ada di **`public/assets/data.js`**, tidak perlu menyentuh desain:
 - `CONFIG`    : nama, perusahaan, alamat, email, WhatsApp, jam layanan, pengumuman tersemat, foto tim
 - `STATUS`    : status sistem di papan informasi

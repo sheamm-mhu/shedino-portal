@@ -43,7 +43,45 @@
   };
   const icon = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
 
-  const GROUP_TONE = { Layanan: "blue", Pengetahuan: "teal", Analitik: "amber" };
+  /* ---------- Tab layanan dan kartu layanan ---------- */
+  const groupList = () => (window.GROUPS || []).slice();
+  const groupByName = n => groupList().find(g => g.name === n) || { id: "", name: n, icon: "file", tone: "gray", url: "", note: "" };
+  /* Layanan yang kelompoknya tidak ada di daftar tab dikumpulkan sebagai kelompok tambahan */
+  function allGroups() {
+    const base = groupList().filter(g => !g.url);
+    const names = new Set(base.map(g => g.name));
+    const extra = [];
+    (window.SERVICES || []).forEach(s => { if (s.group && !names.has(s.group)) { names.add(s.group); extra.push(groupByName(s.group)); } });
+    return base.concat(extra);
+  }
+  const safe = u => (window.safeUrl ? window.safeUrl(u) : u);
+  function serviceCardHTML(s) {
+    const g = groupByName(s.group);
+    return `<article class="scard" id="${esc(s.id)}">
+      <span class="sic t-${g.tone || "gray"}">${icon(I[s.icon] || I.file)}</span>
+      <span class="badge ${s.login ? "lock" : "open"}">${s.login ? icon(I.lock) + " Perlu login" : "Terbuka"}</span>
+      <h3>${esc(s.title)}</h3>
+      <p>${esc(s.desc)}</p>
+      <button class="sbtn" type="button" data-svc="${esc(s.id)}">${esc(s.btnLabel || "Buka layanan")}</button>
+    </article>`;
+  }
+  /* Tab pil: tab biasa menyaring layanan, tab dengan "url" menjadi tautan ke halaman lain */
+  function groupTabsHTML(active, withAll) {
+    const out = [];
+    if (withAll) out.push(`<button class="gtab" type="button" data-g="Semua" aria-pressed="${active === "Semua"}"><i class="dot"></i>Semua</button>`);
+    groupList().forEach(g => {
+      const ic = icon(I[g.icon] || I.file);
+      if (g.url) {
+        const u = safe(g.url), ext = /^https?:/i.test(u);
+        if (u) out.push(`<a class="gtab" href="${esc(u)}"${ext ? ' target="_blank" rel="noopener"' : ""}><i class="dot"></i>${ic}${esc(g.name)}<span class="ext" aria-hidden="true">&nearr;</span></a>`);
+      } else {
+        out.push(`<button class="gtab" type="button" data-g="${esc(g.name)}" aria-pressed="${g.name === active}"><i class="dot"></i>${ic}${esc(g.name)}</button>`);
+      }
+    });
+    return out.join("");
+  }
+  /* Teks halaman: {nama}, {tagline}, {perusahaan} diganti dengan pengaturan situs */
+  const tx = str => String(str == null ? "" : str).replace(/\{nama\}/g, C.name).replace(/\{tagline\}/g, C.tagline).replace(/\{perusahaan\}/g, C.company);
   const CAT_META = {
     "Keselamatan Kerja": { tone: "blue", icon: "shield" },
     "Kesehatan Kerja": { tone: "teal", icon: "pulse" },
@@ -108,6 +146,12 @@
       nav.addEventListener("click", e => { if (e.target.closest("a")) { nav.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); } });
     }
 
+    buildDialog();
+  }
+
+  /* Footer dan tombol WhatsApp dibuat setelah konten dari database termuat,
+     supaya alamat, email, dan nomor WhatsApp yang tampil sudah yang terbaru. */
+  function buildFooterAndWA() {
     const f = $("#site-footer");
     if (f) {
       f.innerHTML = `<div class="wrap">
@@ -142,7 +186,9 @@
     wa.setAttribute("aria-label", "Chat dengan admin lewat WhatsApp");
     wa.innerHTML = icon(I.chat) + "<span>Chat Admin</span>";
     document.body.appendChild(wa);
+  }
 
+  function buildDialog() {
     const dlg = document.createElement("dialog");
     dlg.id = "dlg";
     dlg.setAttribute("aria-labelledby", "dlg-t");
@@ -216,9 +262,10 @@
     const s = window.SERVICES.find(x => x.id === id);
     if (!s) return;
     if (s.login && !ensureAccess(s.title)) return;
-    if (s.url) {
-      if (/^https?:/i.test(s.url)) window.open(s.url, "_blank", "noopener");
-      else location.href = s.url;
+    const url = window.safeUrl ? window.safeUrl(s.url) : s.url;
+    if (url) {
+      if (/^https?:/i.test(url)) window.open(url, "_blank", "noopener");
+      else location.href = url;
       return;
     }
     openDialog(s.title, "Alamat layanan ini belum diatur. Isi bidang url pada data layanan di assets/data.js.", "Tutup");
@@ -228,7 +275,7 @@
     const h = decodeURIComponent(location.hash.slice(1));
     if (!h) return;
     const el = document.getElementById(h);
-    if (el && el.matches(".svc, tr, .card, .stat-card")) {
+    if (el && el.matches(".scard, tr, .card, .stat-card")) {
       el.scrollIntoView({ block: "center" });
       el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     }
@@ -237,6 +284,7 @@
   /* ---------- Mulai ---------- */
   buildChrome();
   initNavCurrent();
+  Promise.resolve(window.contentReady).then(buildFooterAndWA);
   window.authReady = (async () => {
     if (!Auth.configured) return null;
     try { window.AUTH = await Auth.getState(); } catch (e) { window.AUTH = null; }
@@ -244,6 +292,6 @@
     return window.AUTH;
   })();
 
-  window.SH = { $, $$, esc, I, icon, fmtDate, pageName, GROUP_TONE, CAT_META, catTone, cover, cardHTML, waLink,
+  window.SH = { $, $$, esc, I, icon, fmtDate, pageName, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, CAT_META, catTone, cover, cardHTML, waLink,
     openDialog, openService, ensureAccess, setNavCurrent, spy, flashHash, loginUrl };
 })();

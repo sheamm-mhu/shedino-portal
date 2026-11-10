@@ -404,3 +404,33 @@ footer .brand .brand-txt small{color:#94A3B8}
 .footer-note{font-size:.9rem}
 
 .grp-note{margin:0 0 .6rem;color:var(--slate)}
+
+/* ===== Kartu layanan dan tab pil (v3) ===== */
+.gtabs-wrap{display:flex;justify-content:center;margin:0 0 2rem}
+.gtabs{display:inline-flex;flex-wrap:wrap;justify-content:center;gap:.3rem;background:#fff;border:1px solid var(--line);border-radius:999px;padding:.35rem;box-shadow:0 8px 26px rgba(15,23,42,.1);max-width:100%}
+.gtab{border:0;background:transparent;border-radius:999px;padding:.55rem 1.1rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;color:var(--ink);font-size:1rem}
+.gtab:hover{background:#F1F5F9}
+.gtab .ico{width:18px;height:18px}
+.gtab .dot{width:8px;height:8px;border-radius:50%;background:var(--crimson);flex:none}
+.gtab .ext{font-size:.95rem;color:var(--slate)}
+.gtab[aria-pressed="true"]{background:var(--crimson);color:#fff}
+.gtab[aria-pressed="true"] .dot{background:#fff}
+.scards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
+.scard{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1.7rem 1.4rem 1.4rem;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.55rem;box-shadow:0 8px 24px rgba(15,23,42,.06);transition:box-shadow .15s,transform .15s}
+.scard:hover{box-shadow:0 14px 34px rgba(15,23,42,.12);transform:translateY(-2px)}
+.scard .sic{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;color:#fff;margin-bottom:.3rem;background:var(--data-gray)}
+.scard .sic .ico{width:30px;height:30px;stroke-width:1.7}
+.sic.t-blue{background:var(--data-blue)}
+.sic.t-teal{background:var(--data-teal)}
+.sic.t-amber{background:var(--data-amber)}
+.sic.t-red{background:var(--data-red)}
+.sic.t-gray{background:var(--data-gray)}
+.scard h3{font-size:1.2rem;font-weight:700}
+.scard p{color:var(--slate);font-size:.97rem;line-height:1.5;margin:0;flex:1}
+.scard .badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase}
+.scard .badge .ico{width:12px;height:12px;stroke-width:2}
+.sbtn{margin-top:.9rem;width:100%;border:1.5px solid var(--crimson);color:var(--crimson);background:#fff;border-radius:999px;padding:.72rem 1rem;font-weight:700;cursor:pointer;font-size:1rem}
+.sbtn:hover{background:var(--crimson);color:#fff}
+.grp-note{margin:0 0 1.2rem;color:var(--slate)}
+@media (max-width:1000px){.scards{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.scards{grid-template-columns:1fr}.gtab{padding:.5rem .8rem;font-size:.95rem}}

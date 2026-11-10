@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin | SHEDINO</title>
+<title>Panel Admin | SHEDINO</title>
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" type="image/png" href="assets/favicon-64.png">
@@ -29,13 +29,19 @@
 <main class="adm">
   <div class="wrap">
     <h1>Panel Admin</h1>
-    <p class="lead">Kelola akun karyawan dan perbarui angka statistik SHE yang tampil di beranda.</p>
+    <p class="lead">Kelola akun karyawan, angka statistik, dan seluruh isi situs: artikel, layanan, dokumen, FAQ, dan foto.</p>
 
     <div id="gate" class="warnbox" role="status">Memeriksa akses...</div>
 
-    <div class="tabs hidden" id="atabs" role="tablist" aria-label="Bagian panel admin" style="max-width:420px;margin-bottom:1.5rem">
-      <button role="tab" id="tab-acc" aria-selected="true" type="button">Akun</button>
-      <button role="tab" id="tab-stat" aria-selected="false" type="button">Statistik SHE</button>
+    <div class="atabs hidden" id="atabs" role="tablist" aria-label="Bagian panel admin">
+      <button role="tab" data-tab="acc" aria-selected="true" type="button">Akun</button>
+      <button role="tab" data-tab="stat" aria-selected="false" type="button">Statistik SHE</button>
+      <button role="tab" data-tab="media" aria-selected="false" type="button">Kabar &amp; Edukasi</button>
+      <button role="tab" data-tab="groups" aria-selected="false" type="button">Tab Layanan</button>
+      <button role="tab" data-tab="services" aria-selected="false" type="button">Layanan</button>
+      <button role="tab" data-tab="docs" aria-selected="false" type="button">Dokumen</button>
+      <button role="tab" data-tab="faq" aria-selected="false" type="button">FAQ</button>
+      <button role="tab" data-tab="set" aria-selected="false" type="button">Pengaturan</button>
     </div>
 
     <div id="stats-panel" class="hidden">
@@ -48,6 +54,25 @@
         <p class="empty hidden" id="stat-empty">Data statistik belum ada. Jalankan ulang <code>supabase/schema.sql</code> di Supabase SQL Editor.</p>
       </div>
     </div>
+
+    <div id="content-panel" class="hidden">
+      <div class="chead">
+        <h2 id="c-title"></h2>
+        <div class="acts">
+          <button class="btn ghost" id="c-import" type="button">Impor data contoh</button>
+          <button class="btn" id="c-add" type="button"></button>
+        </div>
+      </div>
+      <p class="note2">Perubahan yang Anda simpan langsung tampil di situs tanpa perlu menunggu deploy.</p>
+      <div class="tbl">
+        <table>
+          <thead id="c-head"></thead>
+          <tbody id="c-list"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="settings-panel" class="hidden"></div>
 
     <div id="app" class="hidden">
       <div class="stats" role="group" aria-label="Filter berdasarkan status">
@@ -77,13 +102,17 @@
   </div>
 </main>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<dialog class="cdlg" id="cdlg" aria-label="Formulir konten"><form id="cform" novalidate></form></dialog>
 
 <script src="assets/vendor/supabase.js"></script>
 <script src="config.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/admin-content.js"></script>
 <script>
 (function(){
   const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const STATUS = { pending:"Menunggu", approved:"Disetujui", rejected:"Ditolak" };
   const ROLE = { karyawan:"Karyawan", admin:"Admin" };
@@ -166,16 +195,18 @@
   $("#refresh").addEventListener("click", load);
 
   /* ===== Tab ===== */
+  const CONTENT_TABS = ["media", "groups", "services", "docs", "faq"];
   function showTab(which){
-    const acc = which === "acc";
-    $("#tab-acc").setAttribute("aria-selected", acc);
-    $("#tab-stat").setAttribute("aria-selected", !acc);
-    $("#app").classList.toggle("hidden", !acc);
-    $("#stats-panel").classList.toggle("hidden", acc);
-    if(!acc) loadStats();
+    $$("#atabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === which));
+    $("#app").classList.toggle("hidden", which !== "acc");
+    $("#stats-panel").classList.toggle("hidden", which !== "stat");
+    $("#content-panel").classList.toggle("hidden", !CONTENT_TABS.includes(which));
+    $("#settings-panel").classList.toggle("hidden", which !== "set");
+    if(which === "stat") loadStats();
+    else if(which === "set") AdminContent.showSettings();
+    else if(CONTENT_TABS.includes(which)) AdminContent.show(which);
   }
-  $("#tab-acc").addEventListener("click", () => showTab("acc"));
-  $("#tab-stat").addEventListener("click", () => showTab("stat"));
+  $("#atabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if(b) showTab(b.dataset.tab); });
 
   /* ===== Statistik SHE ===== */
   let stats = [];
