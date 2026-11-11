@@ -15,13 +15,13 @@
   }
   window.safeUrl = safeUrl;
 
-  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "teamPhoto", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
+  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "teamPhoto", "heroImage", "heroOverlay", "heroLayout", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   const TONES = ["blue", "teal", "amber", "red", "gray"];
 
   const mapMedia = r => ({
     id: r.id, tab: r.tab, date: String(r.pub_date).slice(0, 10), category: r.category,
     title: r.title, excerpt: r.excerpt || "", tags: Array.isArray(r.tags) ? r.tags : [],
-    image: safeUrl(r.image), body: Array.isArray(r.body) ? r.body : []
+    image: safeUrl(r.image), fileUrl: safeUrl(r.file_url), body: Array.isArray(r.body) ? r.body : []
   });
   const mapDoc = r => ({
     id: r.id, title: r.title, type: r.doc_type, fmt: String(r.fmt || "PDF").toUpperCase(),
@@ -74,15 +74,33 @@
     if (settings && !settings.error && settings.data) {
       settings.data.forEach(row => {
         if (SETTING_KEYS.includes(row.key) && typeof row.value === "string") {
-          window.CONFIG[row.key] = row.key === "teamPhoto" || row.key === "mapsUrl" ? safeUrl(row.value) : row.value;
-        } else if (row.key === "pinned" && row.value && typeof row.value === "object") {
-          window.CONFIG.pinned = { title: String(row.value.title || ""), text: String(row.value.text || "") };
+          let v = row.value;
+          if (row.key === "teamPhoto" || row.key === "mapsUrl" || row.key === "heroImage") v = safeUrl(v);
+          else if (row.key === "heroLayout") v = v === "terpusat" ? "terpusat" : "standar";
+          else if (row.key === "heroOverlay") v = String(Math.min(90, Math.max(20, parseInt(v, 10) || 65)));
+          window.CONFIG[row.key] = v;
+        } else if (row.key === "mediaTypes" && Array.isArray(row.value) && row.value.length) {
+          const seen = new Set();
+          const types = row.value.map(t => ({
+            id: String((t && t.id) || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, ""),
+            label: String((t && t.label) || "").trim(),
+            lead: String((t && t.lead) || "").trim()
+          })).filter(t => t.id && t.label && !seen.has(t.id) && seen.add(t.id));
+          if (types.length) window.MEDIA_TYPES = types;
+        } else if (row.key === "kplh" && row.value && typeof row.value === "object") {
+          const k = row.value, str = v => String(v == null ? "" : v);
+          const base = window.KPLH || {};
+          window.KPLH = {
+            title1: str(k.title1 != null ? k.title1 : base.title1), title2: str(k.title2 != null ? k.title2 : base.title2),
+            bulan: str(k.bulan != null ? k.bulan : base.bulan), tahun: str(k.tahun != null ? k.tahun : base.tahun),
+            logoText: str(k.logoText != null ? k.logoText : base.logoText),
+            rows: Array.isArray(k.rows) ? k.rows.slice(0, 80).map(r => ({ label: str(r && r.label), objective: str(r && r.objective), mtd: str(r && r.mtd), ytd: str(r && r.ytd), ptd: str(r && r.ptd) })) : (base.rows || []),
+            infoText: str(k.infoText), infoImage: safeUrl(k.infoImage)
+          };
         } else if (row.key === "pillars" && Array.isArray(row.value) && row.value.length) {
           window.CONFIG.pillars = row.value.map(p => ({ title: String((p && p.title) || ""), text: String((p && p.text) || "") })).filter(p => p.title || p.text);
         } else if (row.key === "categories" && Array.isArray(row.value) && row.value.length) {
           window.CATEGORIES = row.value.map(String).filter(Boolean);
-        } else if (row.key === "status" && Array.isArray(row.value) && row.value.length) {
-          window.STATUS = row.value.map(s => ({ name: String(s.name || ""), state: ["ok", "warn", "crit"].includes(s.state) ? s.state : "ok", text: String(s.text || "") }));
         }
       });
     }

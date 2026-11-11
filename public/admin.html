@@ -36,7 +36,8 @@
     <div class="atabs hidden" id="atabs" role="tablist" aria-label="Bagian panel admin">
       <button role="tab" data-tab="acc" aria-selected="true" type="button">Akun</button>
       <button role="tab" data-tab="stat" aria-selected="false" type="button">Statistik SHE</button>
-      <button role="tab" data-tab="media" aria-selected="false" type="button">Kabar &amp; Edukasi</button>
+      <button role="tab" data-tab="kplh" aria-selected="false" type="button">Papan KPLH</button>
+      <button role="tab" data-tab="media" aria-selected="false" type="button">Kabar &amp; Media</button>
       <button role="tab" data-tab="groups" aria-selected="false" type="button">Tab Layanan</button>
       <button role="tab" data-tab="services" aria-selected="false" type="button">Layanan</button>
       <button role="tab" data-tab="docs" aria-selected="false" type="button">Dokumen</button>
@@ -73,6 +74,7 @@
     </div>
 
     <div id="settings-panel" class="hidden"></div>
+    <div id="kplh-panel" class="hidden"></div>
 
     <div id="app" class="hidden">
       <div class="stats" role="group" aria-label="Filter berdasarkan status">
@@ -202,8 +204,10 @@
     $("#stats-panel").classList.toggle("hidden", which !== "stat");
     $("#content-panel").classList.toggle("hidden", !CONTENT_TABS.includes(which));
     $("#settings-panel").classList.toggle("hidden", which !== "set");
+    $("#kplh-panel").classList.toggle("hidden", which !== "kplh");
     if(which === "stat") loadStats();
     else if(which === "set") AdminContent.showSettings();
+    else if(which === "kplh") AdminContent.showKplh();
     else if(CONTENT_TABS.includes(which)) AdminContent.show(which);
   }
   $("#atabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if(b) showTab(b.dataset.tab); });

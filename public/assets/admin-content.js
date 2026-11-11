@@ -12,6 +12,7 @@
     .replace(/&/g, " dan ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 70) || ("item-" + Date.now().toString(36));
   const clone = o => JSON.parse(JSON.stringify(o));
   const CATS = () => (window.CATEGORIES || []);
+  const typeLabelA = id => ((window.MEDIA_TYPES || []).find(t => t.id === id) || { label: id }).label;
   const yesNo = v => v ? '<span class="chip approved">Ya</span>' : '<span class="chip karyawan">Tidak</span>';
   const pubChip = v => v ? '<span class="chip approved">Tayang</span>' : '<span class="chip pending">Draf</span>';
 
@@ -79,20 +80,21 @@
 
   const COLS = {
     media: {
-      table: "media_posts", label: "Kabar & Edukasi", one: "artikel", pk: "id", order: ["pub_date", false], defKey: "MEDIA", idFrom: "title",
-      list: [["title", "Judul"], ["tab", "Jenis", v => v === "kabar" ? "Kabar SHE" : "Edukasi"], ["category", "Kategori"], ["pub_date", "Tanggal", fmtD], ["published", "Status", pubChip, true]],
+      table: "media_posts", label: "Kabar & Media", one: "artikel", pk: "id", order: ["pub_date", false], defKey: "MEDIA", idFrom: "title",
+      list: [["title", "Judul"], ["tab", "Jenis", v => typeLabelA(v)], ["category", "Kategori"], ["pub_date", "Tanggal", fmtD], ["published", "Status", pubChip, true]],
       fields: [
         { k: "title", label: "Judul", type: "text", req: true },
-        { row: [{ k: "tab", label: "Jenis", type: "select", opts: () => [["kabar", "Kabar SHE"], ["edukasi", "Edukasi"]] }, { k: "pub_date", label: "Tanggal", type: "date", req: true }] },
+        { row: [{ k: "tab", label: "Jenis", type: "select", opts: () => (window.MEDIA_TYPES || []).map(t => [t.id, t.label]) }, { k: "pub_date", label: "Tanggal", type: "date", req: true }] },
         { k: "category", label: "Kategori", type: "select", opts: () => CATS().map(c => [c, c]) },
         { k: "excerpt", label: "Ringkasan", type: "textarea", help: "Satu atau dua kalimat yang tampil di kartu." },
         { k: "image", label: "Foto sampul", type: "image", folder: "artikel", help: "Boleh dikosongkan. Situs akan membuat sampul berwarna otomatis." },
+        { k: "file_url", label: "Lampiran (opsional)", type: "file", folder: "lampiran", help: "PDF buletin atau materi kampanye yang dapat diunduh pembaca. Maksimal 10 MB." },
         { k: "body", label: "Isi artikel", type: "body" },
         { k: "tags", label: "Tagar", type: "tags", help: "Pisahkan dengan koma, tanpa tanda #. Contoh: SafetyFirst, APAR" },
         { k: "published", label: "Tayangkan di situs", type: "check" }
       ],
-      defaults: () => ({ tab: "kabar", pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", body: [], tags: [], published: true }),
-      fromDefault: m => ({ id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", body: m.body || [], published: true })
+      defaults: () => ({ tab: ((window.MEDIA_TYPES || [])[0] || { id: "kabar" }).id, pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", file_url: "", body: [], tags: [], published: true }),
+      fromDefault: m => ({ id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", file_url: m.fileUrl || "", body: m.body || [], published: true })
     },
     groups: {
       table: "site_groups", label: "Tab Layanan", one: "tab", pk: "id", order: ["sort_order", true], defKey: "GROUPS", idFrom: "name",
@@ -158,6 +160,11 @@
     if (!names.length) names = ((window.DEFAULTS && window.DEFAULTS.GROUPS) || []).map(g => g.name);
     st.groupNames = names;
   }
+  async function loadTypes() {
+    const { data } = await Auth.client.from("site_settings").select("value").eq("key", "mediaTypes").maybeSingle();
+    const v = data && data.value;
+    window.MEDIA_TYPES = Array.isArray(v) && v.length ? v : clone((window.DEFAULTS && window.DEFAULTS.MEDIA_TYPES) || []);
+  }
   async function loadCats() {
     const { data } = await Auth.client.from("site_settings").select("value").eq("key", "categories").maybeSingle();
     const v = data && data.value;
@@ -167,7 +174,7 @@
   async function show(key) {
     st.key = key;
     if (key === "services") await loadGroupNames();
-    if (key === "media") await loadCats();
+    if (key === "media") { await loadCats(); await loadTypes(); }
     const C = COLS[key];
     $("#c-title").textContent = C.label;
     $("#c-add").textContent = "+ Tambah " + C.one;
@@ -381,17 +388,43 @@
     ["company", "Nama perusahaan"], ["address", "Alamat kantor"], ["mapsUrl", "Tautan peta (Google Maps, opsional)"],
     ["email", "Email"], ["whatsapp", "Nomor WhatsApp (format 62812xxxxxxx, tanpa tanda plus)"], ["whatsappLabel", "Nomor WhatsApp yang ditampilkan"], ["hours", "Jam layanan"]
   ];
-  const STATE_OPTS = [["ok", "Normal"], ["warn", "Pemeliharaan"], ["crit", "Gangguan"]];
   const TEXT_KEYS = ["heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   function pillarRowHTML(p) {
     return `<div class="blk"><div class="blkhead"><span class="chip admin">Pilar</span><span class="acts"><button type="button" class="btn ghost sm prm">Hapus</button></span></div>
       <input class="pt" value="${esc(p.title)}" placeholder="Judul pilar" aria-label="Judul pilar"><textarea class="px" placeholder="Penjelasan singkat" aria-label="Penjelasan pilar">${esc(p.text)}</textarea></div>`;
   }
 
-  function statusRowHTML(s) {
-    return `<div class="strow"><input class="sn" value="${esc(s.name)}" placeholder="Nama sistem" aria-label="Nama sistem">
-      <select class="ss" aria-label="Status">${STATE_OPTS.map(o => `<option value="${o[0]}"${o[0] === s.state ? " selected" : ""}>${o[1]}</option>`).join("")}</select>
-      <input class="stx" value="${esc(s.text)}" placeholder="Keterangan" aria-label="Keterangan"><button type="button" class="btn ghost sm srm">Hapus</button></div>`;
+  function typeRowHTML(t) {
+    return `<div class="blk" data-id="${esc(t.id || "")}"><div class="blkhead"><span class="chip admin">Jenis</span><span class="acts"><button type="button" class="btn ghost sm trm">Hapus</button></span></div>
+      <input class="tl" value="${esc(t.label)}" placeholder="Nama jenis, misalnya Hari Besar" aria-label="Nama jenis">
+      <input class="tld" value="${esc(t.lead || "")}" placeholder="Kalimat pembuka halaman (opsional)" aria-label="Kalimat pembuka"></div>`;
+  }
+
+  function imgBoxHTML(key, folder, label, value, maxW, help) {
+    return `<div class="imgbox" data-k="${key}" data-folder="${folder}" data-kind="image" data-maxw="${maxW}">
+      <strong>${esc(label)}</strong>
+      <div class="imgprev">${value ? `<img src="${esc(value)}" alt="">` : "<span>Belum ada foto</span>"}</div>
+      <div class="imgctl"><input type="file" accept="image/*" class="up"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
+      <label>Alamat gambar <input class="urlin" value="${esc(value)}" placeholder="Terisi otomatis setelah unggah"></label>${help ? `<span class="fhelp">${esc(help)}</span>` : ""}</div>`;
+  }
+
+  function wireBox(box) {
+    const up = $(".up", box), rm = $(".rm", box), urlin = $(".urlin", box), stEl = $(".upst", box), prev = $(".imgprev", box);
+    const folder = box.dataset.folder || "umum", maxW = parseInt(box.dataset.maxw, 10) || 1600;
+    const refreshPrev = () => { prev.innerHTML = urlin.value ? `<img src="${esc(urlin.value)}" alt="" onerror="this.replaceWith(document.createTextNode('Foto tidak dapat ditampilkan'))">` : "<span>Belum ada foto</span>"; };
+    urlin.addEventListener("change", refreshPrev);
+    rm.addEventListener("click", () => { urlin.value = ""; up.value = ""; stEl.textContent = ""; refreshPrev(); });
+    up.addEventListener("change", async () => {
+      const file = up.files[0]; if (!file) return;
+      stEl.className = "upst"; stEl.textContent = "Mengunggah...";
+      try {
+        if (!/^image\//.test(file.type)) throw new Error("Pilih file gambar (JPG, PNG, atau WebP).");
+        const r = await compressImage(file, maxW);
+        urlin.value = await uploadTo(folder, r.blob, file.name.replace(/\.[^.]+$/, ""), r.ext, r.type);
+        refreshPrev(); stEl.className = "upst ok"; stEl.textContent = "Berhasil diunggah. Klik Simpan pengaturan untuk menerapkan.";
+      } catch (e) { stEl.className = "upst err"; stEl.textContent = e && e.message && !e.statusCode && !e.error ? e.message : dbError(e); }
+      up.value = "";
+    });
   }
 
   async function showSettings() {
@@ -400,13 +433,12 @@
     const { data, error } = await Auth.client.from("site_settings").select("key,value");
     if (error) { box.innerHTML = `<p class="empty">${esc(dbError(error))}</p>`; return; }
     const D = clone(window.DEFAULTS ? window.DEFAULTS.CONFIG : window.CONFIG);
-    let status = clone(window.DEFAULTS ? window.DEFAULTS.STATUS : window.STATUS);
+    let types = clone((window.DEFAULTS && window.DEFAULTS.MEDIA_TYPES) || []);
     let cats = clone((window.DEFAULTS && window.DEFAULTS.CATEGORIES) || window.CATEGORIES || []);
     (data || []).forEach(r => {
       if (r.key === "pillars" && Array.isArray(r.value) && r.value.length) D.pillars = r.value;
       else if (r.key === "categories" && Array.isArray(r.value) && r.value.length) cats = r.value;
-      else if (r.key === "pinned" && r.value) D.pinned = r.value;
-      else if (r.key === "status" && Array.isArray(r.value)) status = r.value;
+      else if (r.key === "mediaTypes" && Array.isArray(r.value) && r.value.length) types = r.value;
       else if (typeof r.value === "string") D[r.key] = r.value;
     });
     box.innerHTML = `<div class="chead"><h2>Pengaturan situs</h2></div>
@@ -426,16 +458,21 @@
         <div><button type="button" class="btn ghost sm" id="piladd">+ Tambah pilar</button></div>
         <h3>Daftar kategori artikel</h3>
         <label>Satu kategori per baris<textarea data-s="categories" style="min-height:140px">${esc(cats.join("\n"))}</textarea><span class="fhelp">Daftar ini muncul sebagai pilihan Kategori saat membuat artikel.</span></label>
-        <h3>Pengumuman tersemat di beranda</h3>
-        <label>Judul<input data-s="pinTitle" value="${esc((D.pinned || {}).title || "")}"></label>
-        <label>Isi pengumuman<textarea data-s="pinText">${esc((D.pinned || {}).text || "")}</textarea></label>
-        <h3>Status sistem (papan informasi)</h3>
-        <div class="stl" id="stl">${status.map(statusRowHTML).join("")}</div>
-        <div><button type="button" class="btn ghost sm" id="stadd">+ Tambah baris status</button></div>
+        <h3>Jenis konten (tab pada halaman Kabar &amp; Media)</h3>
+        <p class="fhelp">Jenis konten tampil sebagai tab dan di menu Media. Menghapus jenis tidak menghapus artikelnya, tetapi artikel itu hanya tampil di tab Semua.</p>
+        <div class="stl" id="typ">${types.map(typeRowHTML).join("")}</div>
+        <div><button type="button" class="btn ghost sm" id="typadd">+ Tambah jenis</button></div>
+        <h3>Tampilan bagian atas beranda (hero)</h3>
+        <label>Tata letak<select data-s="heroLayout">
+          <option value="standar"${D.heroLayout !== "terpusat" ? " selected" : ""}>Standar: judul dan pencarian rata kiri</option>
+          <option value="terpusat"${D.heroLayout === "terpusat" ? " selected" : ""}>Terpusat: judul di tengah, pencarian, dan kartu statistik di atas foto</option>
+        </select></label>
+        ${imgBoxHTML("heroImage", "hero", "Foto latar", D.heroImage || "", 2000, "Pakai foto lebar (landscape), minimal 1600 piksel. Boleh dikosongkan untuk latar polos.")}
+        <label>Gelapnya lapisan di atas foto: <output id="hov"></output>
+          <input type="range" min="20" max="90" step="5" data-s="heroOverlay" value="${esc(D.heroOverlay || "65")}">
+          <span class="fhelp">Makin gelap, makin mudah dibaca. Naikkan jika foto Anda terang atau ramai.</span></label>
         <h3>Foto tim (bagian Tentang)</h3>
-        <div class="imgbox" data-k="teamPhoto" data-folder="tim" data-kind="image"><div class="imgprev">${D.teamPhoto ? `<img src="${esc(D.teamPhoto)}" alt="">` : "<span>Belum ada foto</span>"}</div>
-          <div class="imgctl"><input type="file" accept="image/*" class="up"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
-          <label>Alamat gambar <input class="urlin" value="${esc(D.teamPhoto || "")}" placeholder="Terisi otomatis setelah unggah"></label></div>
+        ${imgBoxHTML("teamPhoto", "tim", "Foto tim", D.teamPhoto || "", 1600, "")}
         <div class="msg" id="smsg" role="alert"></div>
         <div><button class="btn" type="submit" id="ssave">Simpan pengaturan</button></div>
       </form>`;
@@ -446,35 +483,33 @@
     const form = $("#sform");
     $("#piladd").addEventListener("click", () => $("#pil").insertAdjacentHTML("beforeend", pillarRowHTML({ title: "", text: "" })));
     $("#pil").addEventListener("click", e => { const b = e.target.closest(".prm"); if (b) b.closest(".blk").remove(); });
-    $("#stadd").addEventListener("click", () => $("#stl").insertAdjacentHTML("beforeend", statusRowHTML({ name: "", state: "ok", text: "Normal" })));
-    $("#stl").addEventListener("click", e => { const b = e.target.closest(".srm"); if (b) b.closest(".strow").remove(); });
-    // unggah foto tim memakai logika yang sama dengan formulir konten
-    const box = $(".imgbox", form), up = $(".up", box), rm = $(".rm", box), urlin = $(".urlin", box), stEl = $(".upst", box), prev = $(".imgprev", box);
-    const refreshPrev = () => { prev.innerHTML = urlin.value ? `<img src="${esc(urlin.value)}" alt="" onerror="this.replaceWith(document.createTextNode('Foto tidak dapat ditampilkan'))">` : "<span>Belum ada foto</span>"; };
-    urlin.addEventListener("change", refreshPrev);
-    rm.addEventListener("click", () => { urlin.value = ""; up.value = ""; stEl.textContent = ""; refreshPrev(); });
-    up.addEventListener("change", async () => {
-      const file = up.files[0]; if (!file) return;
-      stEl.className = "upst"; stEl.textContent = "Mengunggah...";
-      try {
-        if (!/^image\//.test(file.type)) throw new Error("Pilih file gambar (JPG, PNG, atau WebP).");
-        const r = await compressImage(file, 1600);
-        urlin.value = await uploadTo("tim", r.blob, file.name.replace(/\.[^.]+$/, ""), r.ext, r.type);
-        refreshPrev(); stEl.className = "upst ok"; stEl.textContent = "Berhasil diunggah. Klik Simpan pengaturan untuk menerapkan.";
-      } catch (e) { stEl.className = "upst err"; stEl.textContent = e && e.message && !e.statusCode && !e.error ? e.message : dbError(e); }
-      up.value = "";
-    });
+    $("#typadd").addEventListener("click", () => $("#typ").insertAdjacentHTML("beforeend", typeRowHTML({ id: "", label: "", lead: "" })));
+    $("#typ").addEventListener("click", e => { const b = e.target.closest(".trm"); if (b) b.closest(".blk").remove(); });
+    $$(".imgbox", form).forEach(wireBox);
+    const ov = $("[data-s=heroOverlay]", form), ovOut = $("#hov");
+    const showOv = () => { ovOut.textContent = ov.value + "%"; };
+    ov.addEventListener("input", showOv); showOv();
 
     form.onsubmit = async e => {
       e.preventDefault();
       const msg = $("#smsg");
       const rows = SET_FIELDS.map(([k]) => ({ key: k, value: $(`[data-s="${k}"]`, form).value.trim() }));
-      rows.push({ key: "teamPhoto", value: urlin.value.trim() });
+      rows.push({ key: "teamPhoto", value: $('.imgbox[data-k="teamPhoto"] .urlin', form).value.trim() });
+      rows.push({ key: "heroImage", value: $('.imgbox[data-k="heroImage"] .urlin', form).value.trim() });
+      rows.push({ key: "heroLayout", value: $("[data-s=heroLayout]", form).value });
+      rows.push({ key: "heroOverlay", value: $("[data-s=heroOverlay]", form).value });
       TEXT_KEYS.forEach(k => rows.push({ key: k, value: $(`[data-s="${k}"]`, form).value.trim() }));
       rows.push({ key: "pillars", value: $$("#pil .blk", form).map(b => ({ title: $(".pt", b).value.trim(), text: $(".px", b).value.trim() })).filter(p => p.title || p.text) });
       rows.push({ key: "categories", value: $('[data-s="categories"]', form).value.split("\n").map(x => x.trim()).filter(Boolean) });
-      rows.push({ key: "pinned", value: { title: $('[data-s="pinTitle"]', form).value.trim(), text: $('[data-s="pinText"]', form).value.trim() } });
-      rows.push({ key: "status", value: $$(".strow", form).map(r => ({ name: $(".sn", r).value.trim(), state: $(".ss", r).value, text: $(".stx", r).value.trim() })).filter(s => s.name) });
+      const used = new Set();
+      const typeRows = $$("#typ .blk", form).map(b => {
+        const label = $(".tl", b).value.trim(); if (!label) return null;
+        let id = b.dataset.id || slugify(label), base = id, n = 2;
+        while (used.has(id)) id = base + "-" + (n++);
+        used.add(id);
+        return { id, label, lead: $(".tld", b).value.trim() };
+      }).filter(Boolean);
+      if (typeRows.length) rows.push({ key: "mediaTypes", value: typeRows });
       const btn = $("#ssave"); btn.disabled = true; btn.textContent = "Menyimpan...";
       const stamp = new Date().toISOString();
       const { error } = await Auth.client.from("site_settings").upsert(rows.map(r => ({ ...r, updated_at: stamp })), { onConflict: "key" });
@@ -482,6 +517,68 @@
       if (error) { msg.className = "msg show err"; msg.textContent = dbError(error); return; }
       msg.className = "msg show ok"; msg.textContent = "Tersimpan. Perubahan langsung tampil di situs.";
       toast("Pengaturan tersimpan.");
+    };
+  }
+
+  /* ---------- Papan Informasi KPLH ---------- */
+  function krowHTML(r) {
+    return `<div class="krow"><input class="kl" value="${esc(r.label)}" placeholder="Uraian" aria-label="Uraian"><input class="ko" value="${esc(r.objective)}" aria-label="Objective"><input class="km" value="${esc(r.mtd)}" aria-label="MTD"><input class="ky" value="${esc(r.ytd)}" aria-label="YTD"><input class="kp" value="${esc(r.ptd)}" aria-label="PTD">
+      <span class="acts"><button type="button" class="btn ghost sm kup" aria-label="Pindah ke atas">&uarr;</button><button type="button" class="btn ghost sm kdn" aria-label="Pindah ke bawah">&darr;</button><button type="button" class="btn ghost sm kdl">Hapus</button></span></div>`;
+  }
+
+  async function showKplh() {
+    const box = $("#kplh-panel");
+    box.innerHTML = '<p class="empty">Memuat...</p>';
+    const { data, error } = await Auth.client.from("site_settings").select("value").eq("key", "kplh").maybeSingle();
+    if (error) { box.innerHTML = `<p class="empty">${esc(dbError(error))}</p>`; return; }
+    const base = clone(window.DEFAULTS.KPLH);
+    const v = data && data.value;
+    const K = v && typeof v === "object" ? Object.assign(base, v) : base;
+    if (!Array.isArray(K.rows)) K.rows = clone(window.DEFAULTS.KPLH.rows);
+    box.innerHTML = `<div class="chead"><h2>Papan Informasi KPLH</h2></div>
+      <p class="note2">Papan di beranda meniru papan informasi di lapangan. Ubah judul, periode, dan angka di sini, lalu klik Simpan. Perubahan langsung tampil di beranda dan bisa dicetak dari tombol Cetak papan.</p>
+      <form id="kform" class="setgrid" novalidate>
+        <h3>Judul dan periode</h3>
+        <label>Judul baris 1<input data-kk="title1" value="${esc(K.title1)}"></label>
+        <label>Judul baris 2 (perusahaan dan lokasi)<input data-kk="title2" value="${esc(K.title2)}"></label>
+        <div class="frow"><label>Bulan<input data-kk="bulan" value="${esc(K.bulan)}" placeholder="OKTOBER"></label><label>Tahun<input data-kk="tahun" value="${esc(K.tahun)}" placeholder="2026"></label></div>
+        <label>Teks di bawah logo<input data-kk="logoText" value="${esc(K.logoText)}"></label>
+        <h3>Tabel statistik</h3>
+        <p class="fhelp">Nilai boleh berisi angka atau tanda minus (-). Baris dapat ditambah, dihapus, dan dipindah urutannya.</p>
+        <div class="ktab" id="ktab"><div class="krow khead"><span>Uraian (STATISTIC)</span><span>OBJECTIVE</span><span>MTD</span><span>YTD</span><span>PTD</span><span></span></div><div id="krows">${K.rows.map(krowHTML).join("")}</div></div>
+        <div class="fact"><div class="l"><button type="button" class="btn ghost sm" id="kadd">+ Tambah baris</button><button type="button" class="btn ghost sm" id="kreset">Kembalikan ke isi contoh</button></div></div>
+        <h3>Kolom SHE INFORMATION</h3>
+        <label>Teks informasi<textarea data-kk="infoText" placeholder="Kosongkan jika kolom ini ingin dibiarkan kosong">${esc(K.infoText)}</textarea></label>
+        ${imgBoxHTML("infoImage", "papan", "Gambar informasi (opsional, misalnya poster)", K.infoImage || "", 1200, "Tampil di dalam kolom SHE INFORMATION.")}
+        <div class="msg" id="kmsg" role="alert"></div>
+        <div><button class="btn" type="submit" id="ksave">Simpan papan</button></div>
+      </form>`;
+    const form = $("#kform");
+    $$(".imgbox", form).forEach(wireBox);
+    $("#kadd").addEventListener("click", () => { $("#krows").insertAdjacentHTML("beforeend", krowHTML({ label: "", objective: "", mtd: "", ytd: "", ptd: "" })); $$(".kl", form).pop().focus(); });
+    $("#kreset").addEventListener("click", () => {
+      if (!confirm("Ganti tabel dengan isi contoh? Perubahan baru tersimpan setelah Anda klik Simpan papan.")) return;
+      $("#krows").innerHTML = window.DEFAULTS.KPLH.rows.map(krowHTML).join("");
+    });
+    $("#krows").addEventListener("click", e => {
+      const r = e.target.closest(".krow"); if (!r) return;
+      if (e.target.closest(".kdl")) r.remove();
+      else if (e.target.closest(".kup") && r.previousElementSibling) r.parentNode.insertBefore(r, r.previousElementSibling);
+      else if (e.target.closest(".kdn") && r.nextElementSibling) r.parentNode.insertBefore(r.nextElementSibling, r);
+    });
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const msg = $("#kmsg");
+      const g = k => $(`[data-kk="${k}"]`, form).value.trim();
+      const rows = $$("#krows .krow", form).map(r => ({ label: $(".kl", r).value.trim(), objective: $(".ko", r).value.trim(), mtd: $(".km", r).value.trim(), ytd: $(".ky", r).value.trim(), ptd: $(".kp", r).value.trim() }))
+        .filter(r => r.label || r.objective || r.mtd || r.ytd || r.ptd);
+      const value = { title1: g("title1"), title2: g("title2"), bulan: g("bulan"), tahun: g("tahun"), logoText: g("logoText"), rows, infoText: g("infoText"), infoImage: $('.imgbox[data-k="infoImage"] .urlin', form).value.trim() };
+      const btn = $("#ksave"); btn.disabled = true; btn.textContent = "Menyimpan...";
+      const { error: err } = await Auth.client.from("site_settings").upsert([{ key: "kplh", value, updated_at: new Date().toISOString() }], { onConflict: "key" });
+      btn.disabled = false; btn.textContent = "Simpan papan";
+      if (err) { msg.className = "msg show err"; msg.textContent = dbError(err); return; }
+      msg.className = "msg show ok"; msg.textContent = "Tersimpan. Papan di beranda langsung diperbarui.";
+      toast("Papan KPLH tersimpan.");
     };
   }
 
@@ -501,5 +598,5 @@
   document.addEventListener("DOMContentLoaded", init);
   if (document.readyState !== "loading") init();
 
-  window.AdminContent = { show, showSettings, COLS };
+  window.AdminContent = { show, showSettings, showKplh, COLS };
 })();

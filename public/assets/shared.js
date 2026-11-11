@@ -105,8 +105,34 @@
         <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><time datetime="${m.date}">${fmtDate(m.date)}</time></div>
         <h3>${esc(m.title)}</h3>
         <p>${esc(m.excerpt)}</p>
-        <div class="tags">${(m.tags || []).slice(0, 3).map(t => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
+        <div class="tags">${m.fileUrl ? '<span class="tag">Ada lampiran</span>' : ""}${(m.tags || []).slice(0, 3).map(t => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
       </div></a>`;
+  }
+
+  /* ---------- Jenis konten ---------- */
+  const mediaTypes = () => (window.MEDIA_TYPES || []).slice();
+  const typeLabel = id => (mediaTypes().find(t => t.id === id) || { label: id }).label;
+
+  /* ---------- Papan Informasi KPLH (replika papan di lapangan) ---------- */
+  function kplhHTML(K) {
+    const rows = Array.isArray(K.rows) ? K.rows : [];
+    const n = Math.max(rows.length, 1);
+    const img = K.infoImage ? `<img class="kplh-infoimg" src="${esc(safe(K.infoImage))}" alt="Informasi SHE" onerror="this.remove()">` : "";
+    const info = img + (K.infoText ? `<div>${esc(K.infoText)}</div>` : "");
+    let body = rows.map((r, i) => `<tr><th scope="row">${esc(r.label)}</th><td>${esc(r.objective)}</td><td>${esc(r.mtd)}</td><td>${esc(r.ytd)}</td><td>${esc(r.ptd)}</td>${i === 0 ? `<td class="kplh-info" rowspan="${n}">${info}</td>` : ""}</tr>`).join("");
+    if (!rows.length) body = `<tr><th scope="row"></th><td></td><td></td><td></td><td></td><td class="kplh-info">${info}</td></tr>`;
+    return `<div class="kplh-bar">${esc(K.title1)}</div>
+      <div class="kplh-bar">${esc(K.title2)}</div>
+      <div class="kplh-top">
+        <div class="kplh-period"><div>BULAN : ${esc(String(K.bulan || "").toUpperCase())}</div><div>TAHUN : ${esc(K.tahun)}</div></div>
+        <span></span>
+        <div class="kplh-logo"><img src="assets/logo-192.png" alt=""><span>${esc(K.logoText)}</span></div>
+      </div>
+      <table class="kplh-table">
+        <colgroup><col style="width:41%"><col style="width:8.9%"><col style="width:10.7%"><col style="width:10.7%"><col style="width:13.4%"><col style="width:15.3%"></colgroup>
+        <thead><tr><th scope="col">STATISTIC</th><th scope="col">OBJECTIVE</th><th scope="col">MTD</th><th scope="col">YTD</th><th scope="col">PTD</th><th scope="col">SHE INFORMATION</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>`;
   }
 
   function waLink() {
@@ -115,15 +141,34 @@
   }
 
   /* ---------- Header, footer, tombol WhatsApp, dialog ---------- */
-  const NAV = [
-    { k: "layanan", t: "Layanan", h: "layanan.html" },
-    { k: "kabar", t: "Kabar SHE", h: "media.html?tab=kabar" },
-    { k: "edukasi", t: "Edukasi", h: "media.html?tab=edukasi" },
-    { k: "dokumen", t: "Dokumen", h: "index.html#dokumen" },
-    { k: "tentang", t: "Tentang", h: "index.html#tentang" },
-    { k: "faq", t: "FAQ", h: "index.html#faq" },
-    { k: "kontak", t: "Kontak", h: "index.html#kontak" }
-  ];
+  /* Menu: "Media" berisi semua jenis konten (Kabar SHE, Edukasi, Hari Besar, Buletin, Kampanye, ...) */
+  function navItems() {
+    return [
+      { k: "layanan", t: "Layanan", h: "layanan.html" },
+      { k: "media", t: "Media", children: mediaTypes().map(t => ({ k: t.id, t: t.label, h: "media.html?tab=" + encodeURIComponent(t.id) })) },
+      { k: "dokumen", t: "Dokumen", h: "index.html#dokumen" },
+      { k: "tentang", t: "Tentang", h: "index.html#tentang" },
+      { k: "faq", t: "FAQ", h: "index.html#faq" },
+      { k: "kontak", t: "Kontak", h: "index.html#kontak" }
+    ];
+  }
+  function navHTML() {
+    return navItems().map(n => n.children
+      ? `<div class="dd"><span class="dd-label">${n.t}</span><button class="dd-btn" type="button" aria-expanded="false" aria-haspopup="true">${n.t} <span aria-hidden="true">&#9662;</span></button>
+          <div class="dd-menu">${n.children.map(c => `<a href="${c.h}" data-k="${esc(c.k)}">${esc(c.t)}</a>`).join("")}<a href="media.html" data-k="_semua">Semua kabar &amp; media</a></div></div>`
+      : `<a href="${n.h}" data-k="${n.k}">${n.t}</a>`).join("");
+  }
+  function footerLinks() {
+    const out = [];
+    navItems().forEach(n => n.children ? n.children.forEach(c => out.push(c)) : out.push(n));
+    return out;
+  }
+  let navCurrent = null;
+  function renderNav() {
+    const box = $("#nav-links");
+    if (box) box.innerHTML = navHTML();
+    setNavCurrent(navCurrent);
+  }
 
   function buildChrome() {
     const h = $("#site-header");
@@ -136,14 +181,20 @@
         </a>
         <button class="burger" id="burger" aria-expanded="false" aria-controls="nav">Menu</button>
         <nav class="nav" id="nav" aria-label="Navigasi utama">
-          ${NAV.map(n => `<a href="${n.h}" data-k="${n.k}">${n.t}</a>`).join("")}
+          <span id="nav-links" style="display:contents">${navHTML()}</span>
           <span class="who" id="who" hidden></span>
           <a href="admin.html" id="admin-link" hidden>Admin</a>
           <a href="masuk.html" class="login" id="auth-link">Masuk</a>
         </nav></div>`;
       const burger = $("#burger"), nav = $("#nav");
       burger.addEventListener("click", () => { const o = nav.classList.toggle("open"); burger.setAttribute("aria-expanded", o); });
-      nav.addEventListener("click", e => { if (e.target.closest("a")) { nav.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); } });
+      nav.addEventListener("click", e => {
+        const dd = e.target.closest(".dd-btn");
+        if (dd) { const box = dd.closest(".dd"), o = box.classList.toggle("open"); dd.setAttribute("aria-expanded", o); return; }
+        if (e.target.closest("a")) { nav.classList.remove("open"); burger.setAttribute("aria-expanded", "false"); }
+      });
+      document.addEventListener("click", e => { if (!e.target.closest(".dd")) $$(".dd.open").forEach(d => { d.classList.remove("open"); $(".dd-btn", d).setAttribute("aria-expanded", "false"); }); });
+      document.addEventListener("keydown", e => { if (e.key === "Escape") $$(".dd.open").forEach(d => { d.classList.remove("open"); $(".dd-btn", d).setAttribute("aria-expanded", "false"); }); });
     }
 
     buildDialog();
@@ -162,7 +213,7 @@
           </div>
           <div>
             <h4>Menu</h4>
-            <ul>${NAV.map(n => `<li><a href="${n.h}">${n.t}</a></li>`).join("")}</ul>
+            <ul>${footerLinks().map(n => `<li><a href="${n.h}">${esc(n.t)}</a></li>`).join("")}</ul>
           </div>
           <div>
             <h4>Hubungi kami</h4>
@@ -208,12 +259,17 @@
     $("#dlg").showModal();
   }
   function setNavCurrent(k) {
-    $$("#nav a[data-k]").forEach(a => { if (a.dataset.k === k) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+    navCurrent = k;
+    $$("#nav a[data-k]").forEach(a => { if (k && a.dataset.k === k) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+    $$("#nav .dd").forEach(d => {
+      const b = $(".dd-btn", d);
+      if ($('a[aria-current="true"]', d)) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+    });
   }
   function initNavCurrent() {
     const p = new URLSearchParams(location.search);
     if (pageName === "layanan") setNavCurrent("layanan");
-    else if (pageName === "media") setNavCurrent(p.get("tab") === "edukasi" ? "edukasi" : p.get("tab") === "kabar" ? "kabar" : null);
+    else if (pageName === "media") { const t = p.get("tab"); setNavCurrent(t && mediaTypes().some(x => x.id === t) ? t : null); }
   }
   function spy(ids) {
     const links = new Map($$("#nav a[data-k]").map(a => [a.dataset.k, a]));
@@ -284,7 +340,7 @@
   /* ---------- Mulai ---------- */
   buildChrome();
   initNavCurrent();
-  Promise.resolve(window.contentReady).then(buildFooterAndWA);
+  Promise.resolve(window.contentReady).then(() => { renderNav(); initNavCurrent(); buildFooterAndWA(); });
   window.authReady = (async () => {
     if (!Auth.configured) return null;
     try { window.AUTH = await Auth.getState(); } catch (e) { window.AUTH = null; }
@@ -292,6 +348,6 @@
     return window.AUTH;
   })();
 
-  window.SH = { $, $$, esc, I, icon, fmtDate, pageName, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, CAT_META, catTone, cover, cardHTML, waLink,
+  window.SH = { $, $$, esc, I, icon, fmtDate, pageName, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
     openDialog, openService, ensureAccess, setNavCurrent, spy, flashHash, loginUrl };
 })();

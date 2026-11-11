@@ -46,14 +46,21 @@
       </div>
     </div>
 
-    <aside class="board hero-in d2" aria-labelledby="papan">
-      <h2 id="papan">Papan informasi <span class="date" id="today"></span></h2>
-      <ul class="status" id="status"></ul>
-      <div class="pin">
-        <b id="pin-title"></b>
-        <span id="pin-text"></span>
+  </div>
+</section>
+
+<!-- PAPAN INFORMASI KPLH -->
+<section class="sec tight" id="papan" aria-labelledby="h-papan">
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="h-papan">Papan Informasi KPLH</h2>
+        <p>Ringkasan statistik keselamatan, kesehatan kerja, dan lindungan lingkungan pada periode berjalan.</p>
       </div>
-    </aside>
+      <div class="acts"><button class="btn ghost" id="kplh-cetak" type="button">Cetak papan</button></div>
+    </div>
+    <div id="kplh-print-area"><div class="kplh-scroll"><div class="kplh" id="kplh"></div></div></div>
+    <p class="hint kplh-hint">Geser papan ke samping untuk melihat seluruh kolom.</p>
   </div>
 </section>
 
@@ -117,8 +124,23 @@
   </div>
 </section>
 
+<!-- HARI BESAR, BULETIN, KAMPANYE -->
+<section class="sec" id="informasi" aria-labelledby="h-info" hidden>
+  <div class="wrap">
+    <div class="sec-head">
+      <div>
+        <h2 id="h-info"></h2>
+        <p id="info-lead"></p>
+      </div>
+      <a class="more-link" id="info-all" href="media.html">Lihat semua</a>
+    </div>
+    <div class="gtabs-wrap"><div class="gtabs" id="itabs" role="group" aria-label="Jenis informasi"></div></div>
+    <div class="cards" id="info-cards"></div>
+  </div>
+</section>
+
 <!-- DOKUMEN -->
-<section class="sec" id="dokumen" aria-labelledby="h-dokumen">
+<section class="sec alt" id="dokumen" aria-labelledby="h-dokumen">
   <div class="wrap">
     <div class="sec-head">
       <div>
@@ -148,7 +170,7 @@
 </section>
 
 <!-- TENTANG -->
-<section class="sec alt" id="tentang" aria-labelledby="h-tentang">
+<section class="sec" id="tentang" aria-labelledby="h-tentang">
   <div class="wrap">
     <div class="about-top">
       <div>
@@ -163,7 +185,7 @@
 </section>
 
 <!-- FAQ -->
-<section class="sec" id="faq" aria-labelledby="h-faq">
+<section class="sec alt" id="faq" aria-labelledby="h-faq">
   <div class="wrap" style="max-width:880px">
     <div class="sec-head"><div><h2 id="h-faq">Pertanyaan yang sering diajukan</h2></div></div>
     <div id="faq-list"></div>
@@ -171,7 +193,7 @@
 </section>
 
 <!-- KONTAK -->
-<section class="sec alt" id="kontak" aria-labelledby="h-kontak">
+<section class="sec" id="kontak" aria-labelledby="h-kontak">
   <div class="wrap contact">
     <div>
       <h2 id="h-kontak" style="font-size:clamp(1.9rem,3.6vw,2.7rem);font-weight:800">Butuh bantuan?</h2>
@@ -230,6 +252,22 @@
   $$("[data-bind=tagline]").forEach(e => e.textContent = C.tagline);
   $$("[data-bind=company]").forEach(e => e.textContent = C.company);
   document.title = C.name + " | " + C.tagline;
+  /* Latar foto dan tata letak hero */
+  const hero = $(".hero");
+  const heroImg = window.safeUrl ? window.safeUrl(C.heroImage) : C.heroImage;
+  if (heroImg) {
+    const a = Math.min(0.9, Math.max(0.2, (parseInt(C.heroOverlay, 10) || 65) / 100));
+    hero.classList.add("hero--img");
+    hero.style.backgroundImage = `linear-gradient(rgba(15,23,42,${a}), rgba(15,23,42,${Math.min(0.96, a + 0.12)})), url("${String(heroImg).replace(/"/g, "%22")}")`;
+  }
+  if (C.heroLayout === "terpusat") {
+    hero.classList.add("hero--center");
+    const wrap = $(".hero .wrap"), box = document.createElement("div");
+    box.className = "hero-stats";
+    box.appendChild($("#stats")); box.appendChild($("#stat-hint"));
+    wrap.appendChild(box);   // kartu statistik tepat di bawah pencarian
+    $("#statistik").hidden = true;
+  }
   $("#judul").textContent = tx(C.heroTitle);
   $("#hero-lead").textContent = tx(C.heroLead);
   $("#svc-intro").textContent = tx(C.servicesIntro);
@@ -240,9 +278,6 @@
     const [tone, ic] = PILLAR_STYLE[i % PILLAR_STYLE.length];
     return `<div class="pillar"><span class="ib t-${tone}">${icon(I[ic])}</span><h3>${esc(tx(p.title))}</h3><p>${esc(tx(p.text))}</p></div>`;
   }).join("");
-  $("#today").textContent = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
-  $("#pin-title").textContent = C.pinned.title;
-  $("#pin-text").textContent = C.pinned.text;
   $("#c-wa").href = window.SH.waLink();
   $("#c-wa-t").textContent = C.whatsappLabel;
   $("#c-mail").href = "mailto:" + C.email;
@@ -257,9 +292,9 @@
     ? `<img class="photo" src="${esc(C.teamPhoto)}" alt="Tim SHE" onerror="this.remove()">`
     : `<div><img class="logo" src="assets/logo-192.png" alt=""><b style="color:#fff;font-family:var(--display);font-size:1.4rem">${esc(C.name)}</b><br><span>${esc(C.tagline)}</span></div>`;
 
-  /* Status */
-  $("#status").innerHTML = window.STATUS.map(s =>
-    `<li><span class="nm">${esc(s.name)}</span><span class="st ${s.state}"><i></i>${esc(s.text)}</span></li>`).join("");
+  /* ===== Papan Informasi KPLH ===== */
+  $("#kplh").innerHTML = window.SH.kplhHTML(window.KPLH);
+  $("#kplh-cetak").addEventListener("click", () => window.print());
 
   /* ===== Statistik ===== */
   async function renderStats() {
@@ -278,9 +313,9 @@
         const v = r && r.value !== "" && r.value != null ? r.value : "-";
         const unit = (r && r.unit) || d.unit;
         const meta = [r && r.note ? r.note : "", r && r.updated_at ? "Diperbarui " + fmtDate(r.updated_at.slice(0, 10)) : ""].filter(Boolean).join(" | ");
-        return `<div class="stat-card ${tone}"><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
+        return `<div class="stat-card ${tone}"><span class="sico">${icon(I[d.icon] || I.chart)}</span><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
       }
-      return `<button class="stat-card locked ${tone}" type="button" data-lock aria-label="${esc(d.label)}, terkunci. Masuk untuk melihat"><span class="sl">${esc(d.label)}</span><span class="sv">&bull;&bull;&bull;</span><span class="sn">${icon(I.lock)} Masuk untuk melihat</span></button>`;
+      return `<button class="stat-card locked ${tone}" type="button" data-lock aria-label="${esc(d.label)}, terkunci. Masuk untuk melihat"><span class="sico">${icon(I[d.icon] || I.chart)}</span><span class="sl">${esc(d.label)}</span><span class="sv">&bull;&bull;&bull;</span><span class="sn">${icon(I.lock)} Masuk untuk melihat</span></button>`;
     }).join("");
     const hint = $("#stat-hint");
     if (failed) hint.textContent = "Data statistik belum tersedia. Pastikan skema database terbaru (supabase/schema.sql) sudah dijalankan.";
@@ -330,6 +365,25 @@
     </a></li>`).join("");
   $("#edu-cards").innerHTML = edu.slice(0, 3).map(cardHTML).join("");
 
+  /* ===== Hari Besar, Buletin & Kampanye (jenis konten selain Kabar dan Edukasi) ===== */
+  const extraTypes = window.SH.mediaTypes().filter(t => t.id !== "kabar" && t.id !== "edukasi" && window.MEDIA.some(m => m.tab === t.id));
+  if (extraTypes.length) {
+    let activeType = extraTypes[0].id;
+    const labels = extraTypes.map(t => t.label);
+    $("#h-info").textContent = labels.length > 1 ? labels.slice(0, -1).join(", ") + " & " + labels[labels.length - 1] : labels[0];
+    function renderInfo() {
+      $("#itabs").innerHTML = extraTypes.map(t => `<button class="gtab" type="button" data-t="${esc(t.id)}" aria-pressed="${t.id === activeType}"><i class="dot"></i>${esc(t.label)}</button>`).join("");
+      const cur = extraTypes.find(t => t.id === activeType);
+      $("#info-lead").textContent = cur.lead || "";
+      $("#info-all").href = "media.html?tab=" + encodeURIComponent(cur.id);
+      $("#info-all").textContent = "Lihat semua " + cur.label.toLowerCase();
+      $("#info-cards").innerHTML = window.MEDIA.filter(m => m.tab === activeType).sort(byDate).slice(0, 3).map(cardHTML).join("");
+    }
+    $("#itabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (!b) return; activeType = b.dataset.t; renderInfo(); });
+    renderInfo();
+    $("#informasi").hidden = false;
+  }
+
   /* ===== Dokumen ===== */
   function renderDocs() {
     const q = $("#dq").value.trim().toLowerCase();
@@ -364,7 +418,7 @@
   const ALL = [
     ...window.SERVICES.map(s => ({ kind: "Layanan", title: s.title, desc: s.group + " | " + s.desc, href: "layanan.html#" + s.id, icon: I[s.icon], hay: s.title + " " + s.desc + " " + s.group })),
     ...window.DOCS.map(d => ({ kind: "Prosedur & dokumen", title: d.title, desc: d.type + " | " + d.fmt, href: "#" + d.id, local: d.id, icon: I.file, hay: d.title + " " + d.type })),
-    ...window.MEDIA.map(m => ({ kind: "Kabar & edukasi", title: m.title, desc: (m.tab === "kabar" ? "Kabar SHE" : "Edukasi") + " | " + fmtDate(m.date), href: "artikel.html?id=" + encodeURIComponent(m.id), icon: I.news, hay: m.title + " " + m.excerpt + " " + m.category + " " + (m.tags || []).join(" ") }))
+    ...window.MEDIA.map(m => ({ kind: "Kabar & media", title: m.title, desc: window.SH.typeLabel(m.tab) + " | " + fmtDate(m.date), href: "artikel.html?id=" + encodeURIComponent(m.id), icon: I.news, hay: m.title + " " + m.excerpt + " " + m.category + " " + (m.tags || []).join(" ") }))
   ];
   function search() {
     const q = input.value.trim().toLowerCase();
@@ -430,7 +484,7 @@
     note.textContent = "Aplikasi email Anda dibuka. Kirim pesan dari sana untuk menyelesaikan.";
   });
 
-  spy(["layanan", "kabar", "edukasi", "dokumen", "tentang", "faq", "kontak"]);
+  spy(["papan", "layanan", "kabar", "edukasi", "informasi", "dokumen", "tentang", "faq", "kontak"]);
   flashHash();
 })();
 </script>

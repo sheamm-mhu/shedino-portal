@@ -72,6 +72,23 @@ Tab dan kartu layanan:
 - Jika nama tab diganti, layanan di tab itu ikut pindah otomatis. Jika tab dihapus, layanannya tampil sebagai kelompok tambahan sampai dipindahkan.
 - Di tab **Pengaturan** Anda juga mengubah teks halaman depan. Gunakan `{nama}`, `{tagline}`, dan `{perusahaan}` bila ingin nilai otomatis disisipkan.
 
+Papan Informasi KPLH:
+- Buka tab **Papan KPLH**. Ubah judul, bulan, tahun, dan angka pada tabel, lalu klik **Simpan papan**. Papan di beranda langsung diperbarui.
+- Gunakan **+ Tambah baris**, **Hapus**, dan tombol panah untuk mengatur baris. **Kembalikan ke isi contoh** mengisi ulang tabel dengan data bawaan (baru tersimpan setelah Simpan papan).
+- Kolom **SHE INFORMATION** boleh dibiarkan kosong seperti papan asli, atau diisi teks dan gambar.
+- Papan ini tampil untuk semua pengunjung. Pengunjung bisa mencetaknya dari tombol **Cetak papan** (kertas A4 mendatar).
+
+Jenis konten (Hari Besar, Buletin, Kampanye, dan lainnya):
+- Buka tab **Pengaturan**, bagian **Jenis konten**. Tambah, ganti nama, atau hapus jenis. Jenis tampil sebagai tab di halaman Kabar & Media dan di menu **Media**.
+- Saat membuat artikel di tab **Kabar & Media**, pilih **Jenis**-nya. Kolom **Lampiran** dipakai untuk mengunggah PDF (misalnya file buletin) yang muncul sebagai tombol **Unduh lampiran**.
+- Setelah pembaruan ini, jalankan ulang seluruh isi `supabase/schema.sql` (agar kolom lampiran dibuat dan jenis konten tidak lagi dibatasi).
+
+Foto latar beranda:
+- Buka tab **Pengaturan**, bagian **Tampilan bagian atas beranda (hero)**.
+- Pilih **Tata letak**, klik **Choose File** pada **Foto latar**, lalu atur **Gelapnya lapisan di atas foto** (20 sampai 90). Klik **Simpan pengaturan**.
+- Pakai foto lebar (landscape), minimal 1600 piksel. Foto otomatis dikecilkan saat diunggah. Foto yang terang atau ramai memerlukan lapisan lebih gelap agar tulisan terbaca.
+- Untuk menghapus foto latar, klik **Hapus foto** lalu **Simpan pengaturan**.
+
 Catatan:
 - Foto dan file tersimpan di Supabase Storage (bucket `site-media`, paket gratis 1 GB). Menghapus atau mengganti foto di formulir tidak menghapus file lamanya dari penyimpanan. Bersihkan lewat menu **Storage** di Supabase bila perlu.
 - Artikel atau dokumen dengan kotak **Tayangkan di situs** tidak dicentang berstatus draf dan hanya terlihat oleh admin.

@@ -141,18 +141,24 @@ on conflict (key) do nothing;
 -- Kabar SHE dan Edukasi
 create table if not exists public.media_posts (
   id          text primary key,
-  tab         text not null default 'kabar' check (tab in ('kabar','edukasi')),
+  tab         text not null default 'kabar',
   title       text not null,
   excerpt     text not null default '',
   category    text not null default '',
   pub_date    date not null default current_date,
   tags        text[] not null default '{}',
   image       text not null default '',
+  file_url    text not null default '',
   body        jsonb not null default '[]'::jsonb,
   published   boolean not null default true,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+
+-- Untuk project yang sudah memakai versi sebelumnya:
+-- jenis konten tidak lagi dibatasi (Kabar, Edukasi, Hari Besar, Buletin, Kampanye, dan seterusnya)
+alter table public.media_posts add column if not exists file_url text not null default '';
+alter table public.media_posts drop constraint if exists media_posts_tab_check;
 
 -- Pustaka dokumen
 create table if not exists public.site_docs (

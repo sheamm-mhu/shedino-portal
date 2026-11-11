@@ -152,3 +152,11 @@ dialog.cdlg::backdrop{background:rgba(10,25,40,.6)}
 .imgbox *{min-width:0}
 .imgctl input[type=file]{max-width:100%}
 .bodyed,.blk,.stl,.fact{min-width:0}
+
+/* ===== Editor papan KPLH ===== */
+.ktab{display:grid;gap:.4rem;overflow-x:auto;padding-bottom:.4rem}
+#krows{display:grid;gap:.4rem}
+.krow{display:grid;grid-template-columns:minmax(240px,2.4fr) repeat(4,minmax(86px,1fr)) auto;gap:.4rem;align-items:center;min-width:760px}
+.krow input{padding:.5rem .6rem}
+.krow.khead{font-weight:700;color:var(--slate);font-size:.9rem}
+.krow .acts{display:flex;gap:.25rem}

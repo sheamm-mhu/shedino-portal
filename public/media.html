@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kabar &amp; Edukasi | SHEDINO</title>
-<meta name="description" content="Kabar SHE dan edukasi keselamatan, kesehatan, dan lingkungan dari SHEDINO.">
+<title>Kabar &amp; Media | SHEDINO</title>
+<meta name="description" content="Kabar SHE, edukasi, hari besar, buletin, dan kampanye keselamatan, kesehatan, dan lingkungan dari SHEDINO.">
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" type="image/png" href="assets/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -19,8 +19,8 @@
 <main>
   <section class="page-head" aria-labelledby="h1">
     <div class="wrap">
-      <div class="crumbs"><a href="index.html">Beranda</a> / <span id="crumb">Kabar &amp; Edukasi</span></div>
-      <h1 id="h1">Kabar &amp; Edukasi</h1>
+      <div class="crumbs"><a href="index.html">Beranda</a> / <span id="crumb">Kabar &amp; Media</span></div>
+      <h1 id="h1">Kabar &amp; Media</h1>
       <p id="lead">Kegiatan terbaru dan panduan keselamatan, kesehatan, serta lingkungan.</p>
     </div>
   </section>
@@ -63,9 +63,8 @@
   const { $, $$, esc, cardHTML, setNavCurrent } = window.SH;
   const PAGE_SIZE = 9;
   const TABS = [
-    { k: "semua", t: "Semua", lead: "Kegiatan terbaru dan panduan keselamatan, kesehatan, serta lingkungan." },
-    { k: "kabar", t: "Kabar SHE", lead: "Pengumuman dan kegiatan terbaru seputar keselamatan, kesehatan, dan lingkungan." },
-    { k: "edukasi", t: "Edukasi", lead: "Panduan singkat dan tips keselamatan yang mudah dipahami dan langsung bisa dipraktikkan." }
+    { k: "semua", t: "Semua", lead: "Kegiatan terbaru, panduan, hari besar, buletin, dan kampanye keselamatan, kesehatan, serta lingkungan." },
+    ...window.SH.mediaTypes().map(t => ({ k: t.id, t: t.label, lead: t.lead || "" }))
   ];
   const ALL = window.MEDIA.slice().sort((a, b) => b.date.localeCompare(a.date));
   const p = new URLSearchParams(location.search);
@@ -94,9 +93,9 @@
     $("#tabs").innerHTML = TABS.map(t => `<button class="tab" data-tab="${t.k}" aria-pressed="${t.k === state.tab}">${t.t}</button>`).join("");
     const cur = TABS.find(t => t.k === state.tab);
     $("#lead").textContent = cur.lead;
-    $("#h1").textContent = state.tab === "semua" ? "Kabar & Edukasi" : cur.t;
-    $("#crumb").textContent = cur.t === "Semua" ? "Kabar & Edukasi" : cur.t;
-    document.title = (state.tab === "semua" ? "Kabar & Edukasi" : cur.t) + " | " + window.CONFIG.name;
+    $("#h1").textContent = state.tab === "semua" ? "Kabar & Media" : cur.t;
+    $("#crumb").textContent = cur.t === "Semua" ? "Kabar & Media" : cur.t;
+    document.title = (state.tab === "semua" ? "Kabar & Media" : cur.t) + " | " + window.CONFIG.name;
     setNavCurrent(state.tab === "semua" ? null : state.tab);
   }
 

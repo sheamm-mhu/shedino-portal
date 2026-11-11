@@ -16,9 +16,11 @@ window.CONFIG = {
   whatsapp: "6281234567890",         // format internasional, tanpa + dan tanpa 0 di depan
   whatsappLabel: "+62 812-3456-7890",
   hours: "Senin sampai Jumat, 08.00 - 17.00 WIB",
-  pinned: { title: "Pemeliharaan platform pelatihan", text: "Sabtu, 02.00 - 04.00 WIB. Pendaftaran pelatihan ditunda sementara." },
 
   /* Teks halaman. Gunakan {nama}, {tagline}, dan {perusahaan} untuk menyisipkan nilai di atas. */
+  heroImage: "",        // foto latar bagian atas beranda (diunggah lewat Admin > Pengaturan)
+  heroOverlay: "65",    // gelapnya lapisan di atas foto, 20 sampai 90
+  heroLayout: "standar", // "standar" atau "terpusat"
   heroTitle: "Semua informasi SHE, satu pintu.",
   heroLead: "Cari layanan, prosedur, kabar, dan edukasi keselamatan, kesehatan, dan lingkungan tanpa perlu bertanya ke banyak orang.",
   servicesIntro: "Layanan, pengetahuan, dan analitik untuk mendukung pekerjaan yang aman. Layanan \"Perlu login\" hanya terbuka untuk akun yang sudah disetujui.",
@@ -32,28 +34,19 @@ window.CONFIG = {
   ]
 };
 
-/* ---------- 2. Status sistem (papan informasi di beranda) ---------- */
-/* state: "ok" (normal) | "warn" (pemeliharaan) | "crit" (gangguan) */
-window.STATUS = [
-  { name: "Sistem izin kerja",  state: "ok",   text: "Normal" },
-  { name: "Pelaporan hazard",   state: "ok",   text: "Normal" },
-  { name: "Platform pelatihan", state: "warn", text: "Pemeliharaan" },
-  { name: "Helpdesk SHE",       state: "ok",   text: "Normal" }
-];
-
 /* ---------- 3. Kartu statistik ----------
    Angka sebenarnya diisi Admin lewat halaman Admin > Statistik SHE dan hanya
    tampil untuk akun yang sudah disetujui. Daftar di bawah menentukan urutan,
    label, dan warna kartu. "key" harus sama dengan data di database. */
 window.STAT_DEFS = [
-  { key: "insiden",    label: "Jumlah insiden",        unit: "kasus",   tone: "amber" },
-  { key: "afr",        label: "AFR",                   unit: "",        tone: "blue"  },
-  { key: "cidera",     label: "Jumlah cidera",         unit: "orang",   tone: "red"   },
-  { key: "nearmiss",   label: "Near miss dilaporkan",  unit: "laporan", tone: "gray"  },
-  { key: "lingkungan", label: "Pencemaran lingkungan", unit: "kasus",   tone: "teal"  },
-  { key: "skor",       label: "Skor program SHE",      unit: "/ 100",   tone: "blue"  },
-  { key: "closing",    label: "Closing rate hazard",   unit: "%",       tone: "teal"  },
-  { key: "inspeksi",   label: "Inspeksi terlaksana",   unit: "%",       tone: "amber" }
+  { key: "insiden",    label: "Jumlah insiden",        unit: "kasus",   tone: "amber", icon: "shield" },
+  { key: "afr",        label: "AFR",                   unit: "",        tone: "blue",  icon: "chart" },
+  { key: "cidera",     label: "Jumlah cidera",         unit: "orang",   tone: "red",   icon: "alert" },
+  { key: "nearmiss",   label: "Near miss dilaporkan",  unit: "laporan", tone: "gray",  icon: "search" },
+  { key: "lingkungan", label: "Pencemaran lingkungan", unit: "kasus",   tone: "teal",  icon: "leaf" },
+  { key: "skor",       label: "Skor program SHE",      unit: "/ 100",   tone: "blue",  icon: "clip" },
+  { key: "closing",    label: "Closing rate hazard",   unit: "%",       tone: "teal",  icon: "check" },
+  { key: "inspeksi",   label: "Inspeksi terlaksana",   unit: "%",       tone: "amber", icon: "monitor" }
 ];
 
 /* ---------- 4a. Tab layanan ----------
@@ -103,6 +96,16 @@ window.SERVICES = [
 window.CATEGORIES = [
   "Keselamatan Kerja", "Kesehatan Kerja", "Lingkungan Hidup", "Prosedur Kerja",
   "Tanggap Darurat", "Pengoperasian Unit", "Organisasi & Sistem Manajemen"
+];
+
+/* Jenis konten: tab pada halaman Kabar & Media. Bisa ditambah lewat Admin > Pengaturan.
+   id harus huruf kecil tanpa spasi; "lead" adalah kalimat pembuka halaman jenis itu. */
+window.MEDIA_TYPES = [
+  { id: "kabar",      label: "Kabar SHE",  lead: "Pengumuman dan kegiatan terbaru seputar keselamatan, kesehatan, dan lingkungan." },
+  { id: "edukasi",    label: "Edukasi",    lead: "Panduan singkat dan tips keselamatan yang mudah dipahami dan langsung bisa dipraktikkan." },
+  { id: "hari-besar", label: "Hari Besar", lead: "Informasi hari besar nasional dan internasional yang berkaitan dengan keselamatan, kesehatan, dan lingkungan." },
+  { id: "buletin",    label: "Buletin",    lead: "Buletin SHE berkala yang dapat dibaca dan diunduh." },
+  { id: "kampanye",   label: "Kampanye",   lead: "Kampanye keselamatan, kesehatan, dan lingkungan yang sedang berjalan." }
 ];
 
 window.MEDIA = [
@@ -242,8 +245,101 @@ window.MEDIA = [
       { h:"Rambu yang perlu diingat" },
       "Rambu batas kecepatan, rambu berhenti, rambu prioritas unit besar, dan rambu zona pejalan kaki. Patuhi rambu sepanjang waktu, tidak hanya saat ada petugas.",
       "Jika menemukan rambu rusak atau hilang, laporkan melalui layanan Pemesanan rambu agar segera diganti."
+    ] },
+
+  /* ----- Hari Besar ----- */
+  { id:"hari-kesehatan-nasional-2026", tab:"hari-besar", date:"2026-11-12", category:"Kesehatan Kerja",
+    title:"Hari Kesehatan Nasional: ajakan hidup sehat untuk seluruh pekerja",
+    excerpt:"Peringatan Hari Kesehatan Nasional menjadi momentum untuk menjaga kebugaran dan memeriksakan kesehatan secara rutin.",
+    tags:["HKN","KesehatanKerja","HidupSehat"],
+    body:[
+      "Hari Kesehatan Nasional diperingati setiap 12 November. Tahun ini kami mengajak seluruh pekerja untuk menjadikannya awal kebiasaan hidup sehat yang berkelanjutan.",
+      { h:"Kegiatan yang disiapkan" },
+      "Senam bersama, pemeriksaan tekanan darah dan gula darah gratis di klinik, serta penyuluhan gizi seimbang. Jadwal lengkap diumumkan melalui kabar SHE dan papan informasi di area kerja."
+    ] },
+  { id:"hari-lingkungan-hidup-sedunia", tab:"hari-besar", date:"2026-06-05", category:"Lingkungan Hidup",
+    title:"Hari Lingkungan Hidup Sedunia: jaga bumi dari area kerja kita",
+    excerpt:"Setiap pekerja dapat berkontribusi menjaga lingkungan, mulai dari memilah limbah sampai menghemat energi.",
+    tags:["LingkunganHidup","5Juni"],
+    body:[
+      "Hari Lingkungan Hidup Sedunia diperingati setiap 5 Juni sebagai pengingat bahwa menjaga lingkungan adalah tanggung jawab bersama.",
+      "Di area kerja, kontribusi sederhana seperti memilah limbah, mengurangi sampah plastik, dan melaporkan tumpahan dengan cepat sangat berarti bagi kelestarian lingkungan sekitar."
+    ] },
+  { id:"hari-k3-nasional", tab:"hari-besar", date:"2026-01-12", category:"Keselamatan Kerja",
+    title:"Hari K3 Nasional: membangun budaya selamat bersama",
+    excerpt:"Peringatan Hari K3 Nasional diawali dengan apel bersama dan penyegaran komitmen keselamatan seluruh pekerja.",
+    tags:["HariK3","BudayaSelamat"],
+    body:[
+      "Hari Keselamatan dan Kesehatan Kerja Nasional diperingati setiap 12 Januari. Kami memulai tahun dengan menegaskan kembali komitmen bahwa setiap pekerja pulang dalam keadaan selamat dan sehat.",
+      "Rangkaian kegiatan meliputi apel bersama, ikrar keselamatan, dan penyegaran materi pengendalian bahaya kritis."
+    ] },
+
+  /* ----- Buletin ----- */
+  { id:"buletin-she-edisi-oktober-2026", tab:"buletin", date:"2026-10-31", category:"Keselamatan Kerja",
+    title:"Buletin SHE edisi Oktober 2026",
+    excerpt:"Rangkuman kinerja keselamatan, kegiatan, dan tips bulan Oktober dalam satu edisi.",
+    tags:["BuletinSHE","Oktober2026"],
+    body:[
+      "Edisi Oktober memuat rangkuman statistik keselamatan, liputan kegiatan simulasi tanggap darurat, dan tips berkendara aman.",
+      "Unggah file PDF buletin pada kolom Lampiran di panel Admin agar pembaca dapat mengunduhnya dari halaman ini."
+    ] },
+  { id:"buletin-she-edisi-september-2026", tab:"buletin", date:"2026-09-30", category:"Organisasi & Sistem Manajemen",
+    title:"Buletin SHE edisi September 2026",
+    excerpt:"Edisi September berisi hasil audit internal, program kesehatan, dan profil tim SHE.",
+    tags:["BuletinSHE","September2026"],
+    body:[
+      "Edisi September memuat hasil audit internal sistem manajemen, program pemeriksaan kesehatan berkala, dan profil tim SHE di lapangan."
+    ] },
+
+  /* ----- Kampanye ----- */
+  { id:"kampanye-berkendara-aman", tab:"kampanye", date:"2026-10-05", category:"Pengoperasian Unit",
+    title:"Kampanye Berkendara Aman: tiba selamat adalah tujuan",
+    excerpt:"Ajakan mematuhi batas kecepatan, menjaga jarak aman, dan beristirahat cukup sebelum mengemudi.",
+    tags:["BerkendaraAman","SafeDriving"],
+    body:[
+      "Kampanye ini mengajak semua pengemudi dan operator untuk mematuhi batas kecepatan, menjaga jarak aman, tidak menggunakan ponsel saat mengemudi, dan beristirahat cukup.",
+      { h:"Yang dapat Anda lakukan" },
+      "Lakukan pemeriksaan unit sebelum berangkat, laporkan kondisi jalan yang berbahaya, dan ingatkan rekan yang tampak lelah."
+    ] },
+  { id:"kampanye-zero-harm", tab:"kampanye", date:"2026-08-17", category:"Keselamatan Kerja",
+    title:"Kampanye Zero Harm: tidak ada pekerjaan yang lebih penting dari keselamatan",
+    excerpt:"Kampanye berkelanjutan untuk mewujudkan tempat kerja tanpa cidera dan tanpa pencemaran.",
+    tags:["ZeroHarm","SafetyFirst"],
+    body:[
+      "Zero Harm berarti tidak ada cidera, tidak ada penyakit akibat kerja, dan tidak ada kerusakan lingkungan. Setiap pekerja berperan melalui kebiasaan kecil yang konsisten.",
+      "Gunakan layanan Stop Work Authority ketika menemukan kondisi tidak aman, dan laporkan hazard sedini mungkin."
     ] }
 ];
+
+/* ---------- 5b. Papan Informasi KPLH ----------
+   Isi tabel papan di beranda. Lebih mudah diedit lewat Admin > Papan KPLH. */
+window.KPLH = {
+  title1: "PAPAN INFORMASI KPLH",
+  title2: "PT. ANTAREJA MAHADA MAKMUR JOB SITE PT. MULTI HARAPAN UTAMA",
+  bulan: "OKTOBER",
+  tahun: "2026",
+  logoText: "AMM",
+  rows: [
+    { label: "MAN POWER", objective: "-", mtd: "892", ytd: "892", ptd: "892" },
+    { label: "MAN HOURS FREE LTI", objective: "-", mtd: "273,754.80", ytd: "2,433,875.40", ptd: "13,735,344.30" },
+    { label: "FATALITY", objective: "0", mtd: "0", ytd: "0", ptd: "1" },
+    { label: "INJURY ACCIDENT", objective: "1", mtd: "0", ytd: "0", ptd: "18" },
+    { label: "PROPERTY DAMAGE ACCIDENT", objective: "4", mtd: "0", ytd: "0", ptd: "88" },
+    { label: "PENYAKIT AKIBAT KERJA (PAK)", objective: "0", mtd: "0", ytd: "0", ptd: "0" },
+    { label: "KEJADIAN AKIBAT PENYAKIT TENAGA KERJA (KAPTK)", objective: "0", mtd: "0", ytd: "0", ptd: "0" },
+    { label: "LOST TIME INJURY FREQUENCY RATE (LTIFR)", objective: "0.00", mtd: "0.00", ytd: "0.00", ptd: "0.07" },
+    { label: "LOST TIME INJURY SEVERITY RATE (LTISR)", objective: "0.00", mtd: "0.00", ytd: "0.00", ptd: "436.83" },
+    { label: "TOTAL INJURY FREQUENCY RATE (TIFR)", objective: "0.30", mtd: "0.00", ytd: "0.00", ptd: "1.31" },
+    { label: "PROPERTY DAMAGE FREQUENCY RATE (PDFR)", objective: "1.50", mtd: "0.00", ytd: "1.23", ptd: "6.63" },
+    { label: "TOTAL ACCIDENT FREQUENCY RATE (TAFR)", objective: "1.80", mtd: "0.00", ytd: "1.23", ptd: "7.94" },
+    { label: "AUDIT INTERNAL KPLH", objective: "1", mtd: "0", ytd: "0", ptd: "-" },
+    { label: "AUDIT EXTERNAL KPLH", objective: "1", mtd: "0", ytd: "0", ptd: "-" },
+    { label: "ENVIRONMENTAL ACCIDENT", objective: "0", mtd: "0", ytd: "0", ptd: "-" },
+    { label: "COMMUNNITIES COMPLAIN", objective: "0", mtd: "0", ytd: "0", ptd: "-" }
+  ],
+  infoText: "",     // isi kolom SHE INFORMATION (teks)
+  infoImage: ""     // isi kolom SHE INFORMATION (gambar, mis. poster)
+};
 
 /* ---------- 6. Pustaka dokumen ---------- */
 window.DOCS = [
@@ -269,6 +365,7 @@ window.FAQ = [
 /* ---------- 8. Salinan isi bawaan ----------
    Dipakai tombol "Impor data contoh" di panel Admin. Jangan diubah. */
 window.DEFAULTS = JSON.parse(JSON.stringify({
-  CONFIG: window.CONFIG, STATUS: window.STATUS, GROUPS: window.GROUPS, SERVICES: window.SERVICES,
-  MEDIA: window.MEDIA, DOCS: window.DOCS, FAQ: window.FAQ, CATEGORIES: window.CATEGORIES
+  CONFIG: window.CONFIG, GROUPS: window.GROUPS, SERVICES: window.SERVICES,
+  MEDIA: window.MEDIA, MEDIA_TYPES: window.MEDIA_TYPES, KPLH: window.KPLH,
+  DOCS: window.DOCS, FAQ: window.FAQ, CATEGORIES: window.CATEGORIES
 }));

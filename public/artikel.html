@@ -18,7 +18,7 @@
 <main>
   <section class="page-head">
     <div class="wrap">
-      <div class="crumbs" id="crumbs"><a href="index.html">Beranda</a> / <a href="media.html">Kabar &amp; Edukasi</a></div>
+      <div class="crumbs" id="crumbs"><a href="index.html">Beranda</a> / <a href="media.html">Kabar &amp; Media</a></div>
     </div>
   </section>
 
@@ -44,7 +44,7 @@
 <script>
 (async function () {
   await window.contentReady;
-  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent } = window.SH;
+  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent, typeLabel } = window.SH;
   const id = new URLSearchParams(location.search).get("id");
   const m = window.MEDIA.find(x => x.id === id);
   const C = window.CONFIG;
@@ -53,11 +53,11 @@
     document.title = "Artikel tidak ditemukan | " + C.name;
     $("#art").innerHTML = `<h1>Artikel tidak ditemukan</h1>
       <p style="color:var(--slate);font-size:1.1rem;margin-top:1rem">Alamat yang Anda buka tidak cocok dengan artikel mana pun. Mungkin artikelnya sudah dipindahkan atau tautannya salah.</p>
-      <p style="margin-top:1.5rem"><a class="btn" style="text-decoration:none;display:inline-block" href="media.html">Lihat semua kabar &amp; edukasi</a></p>`;
+      <p style="margin-top:1.5rem"><a class="btn" style="text-decoration:none;display:inline-block" href="media.html">Lihat semua kabar &amp; media</a></p>`;
     return;
   }
 
-  const tabName = m.tab === "kabar" ? "Kabar SHE" : "Edukasi";
+  const tabName = typeLabel(m.tab);
   document.title = m.title + " | " + C.name;
   setNavCurrent(m.tab);
   $("#crumbs").innerHTML = `<a href="index.html">Beranda</a> / <a href="media.html?tab=${m.tab}">${tabName}</a> / <span>${esc(m.category)}</span>`;
@@ -68,6 +68,7 @@
     <h1>${esc(m.title)}</h1>
     ${cover(m)}
     <div class="body">${body}</div>
+    ${m.fileUrl ? `<p style="margin:1.4rem 0 0"><a class="btn" style="text-decoration:none;display:inline-block" href="${esc(m.fileUrl)}" target="_blank" rel="noopener">Unduh lampiran</a></p>` : ""}
     <div class="tags" style="margin-top:1.5rem">${(m.tags || []).map(t => `<a class="tag" href="media.html?tag=${encodeURIComponent(t)}">#${esc(t)}</a>`).join("")}</div>
     <div class="share">
       <span class="lbl">Bagikan:</span>
