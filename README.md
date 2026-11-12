@@ -54,6 +54,11 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 2. Di vercel.com pilih Add New > Project, impor repository, Framework Preset: Other, lalu Deploy.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
 
+## Tampilan Kabar, Edukasi, dan Hari Besar/Buletin/Kampanye di beranda
+- Semua artikel ditampilkan dalam satu baris yang bisa digeser ke samping: tombol panah (kiri dan kanan), usap di layar sentuh, trackpad atau Shift+roda mouse, seret dengan mouse, atau tombol panah di keyboard. Tidak perlu membuka "Lihat semua".
+- Gambar sampul menyesuaikan bentuknya: gambar tinggi atau hampir persegi (poster, kalender, infografis) tampil utuh tanpa balok kosong, dengan sisi diisi salinan buram dari gambar yang sama. Foto lebar tetap mengisi penuh kartu.
+- Tautan "Cari & filter" membuka halaman Kabar & Media yang punya pencarian, filter kategori dan tahun, serta tagar.
+
 ## Ramah ponsel (iOS dan Android)
 - Tampilan menyesuaikan lebar layar dari 320 piksel (ponsel kecil) sampai desktop, termasuk layar mendatar dan tablet.
 - Mendukung poni dan bilah sistem (area aman iPhone dan Android), tombol dan tautan berukuran minimal 44 piksel, dan kolom isian 16 piksel agar iPhone tidak memperbesar layar sendiri.

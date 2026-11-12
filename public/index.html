@@ -107,12 +107,9 @@
         <h2 id="h-kabar">Kabar SHE</h2>
         <p>Pengumuman dan kegiatan terbaru seputar keselamatan, kesehatan, dan lingkungan.</p>
       </div>
-      <a class="more-link" href="media.html?tab=kabar">Lihat semua kabar</a>
+      <div class="acts"><div class="hs-ctl" id="kabar-ctl"><button class="hs-btn" type="button" data-dir="-1" aria-label="Geser kabar ke kiri">&lsaquo;</button><button class="hs-btn" type="button" data-dir="1" aria-label="Geser kabar ke kanan">&rsaquo;</button></div><a class="more-link" href="media.html?tab=kabar">Cari &amp; filter kabar</a></div>
     </div>
-    <div class="news">
-      <article class="feature" id="feature"></article>
-      <ul class="news-list" id="news-list"></ul>
-    </div>
+    <div class="hs-wrap"><div class="hscroll" id="kabar-row" tabindex="0" role="region" aria-label="Semua kabar SHE, geser ke samping"></div></div>
   </div>
 </section>
 
@@ -124,9 +121,9 @@
         <h2 id="h-edu">Edukasi SHE</h2>
         <p>Panduan singkat dan tips keselamatan yang mudah dipahami dan langsung bisa dipraktikkan.</p>
       </div>
-      <a class="more-link" href="media.html?tab=edukasi">Lihat semua edukasi</a>
+      <div class="acts"><div class="hs-ctl" id="edu-ctl"><button class="hs-btn" type="button" data-dir="-1" aria-label="Geser edukasi ke kiri">&lsaquo;</button><button class="hs-btn" type="button" data-dir="1" aria-label="Geser edukasi ke kanan">&rsaquo;</button></div><a class="more-link" href="media.html?tab=edukasi">Cari &amp; filter edukasi</a></div>
     </div>
-    <div class="cards" id="edu-cards"></div>
+    <div class="hs-wrap"><div class="hscroll" id="edu-row" tabindex="0" role="region" aria-label="Semua edukasi SHE, geser ke samping"></div></div>
   </div>
 </section>
 
@@ -138,10 +135,10 @@
         <h2 id="h-info"></h2>
         <p id="info-lead"></p>
       </div>
-      <a class="more-link" id="info-all" href="media.html">Lihat semua</a>
+      <div class="acts"><div class="hs-ctl" id="info-ctl"><button class="hs-btn" type="button" data-dir="-1" aria-label="Geser informasi ke kiri">&lsaquo;</button><button class="hs-btn" type="button" data-dir="1" aria-label="Geser informasi ke kanan">&rsaquo;</button></div><a class="more-link" id="info-all" href="media.html">Cari &amp; filter</a></div>
     </div>
     <div class="gtabs-wrap"><div class="gtabs" id="itabs" role="group" aria-label="Jenis informasi"></div></div>
-    <div class="cards" id="info-cards"></div>
+    <div class="hs-wrap"><div class="hscroll" id="info-row" tabindex="0" role="region" aria-label="Hari besar, buletin, dan kampanye, geser ke samping"></div></div>
   </div>
 </section>
 
@@ -353,23 +350,14 @@
   const byDate = (a, b) => b.date.localeCompare(a.date);
   const kabar = window.MEDIA.filter(m => m.tab === "kabar").sort(byDate);
   const edu = window.MEDIA.filter(m => m.tab === "edukasi").sort(byDate);
-  const first = kabar[0];
-  if (first) {
-    $("#feature").innerHTML = `
-      <div>
-        <div class="meta"><span class="cat t-${window.SH.catTone(first.category)}">${esc(first.category)}</span><time datetime="${esc(first.date)}">${fmtDate(first.date)}</time></div>
-        <h3>${esc(first.title)}</h3>
-        <p>${esc(first.excerpt)}</p>
-      </div>
-      <a class="more" href="artikel.html?id=${encodeURIComponent(first.id)}">Baca selengkapnya</a>`;
+  /* Semua artikel ditampilkan dalam satu baris yang dapat digeser ke samping */
+  function fillRow(rowSel, ctlSel, list, emptyText) {
+    const row = $(rowSel);
+    row.innerHTML = list.length ? list.map(m => cardHTML(m)).join("") : `<p class="hs-empty">${esc(emptyText)}</p>`;
+    window.SH.carousel(row, $(ctlSel));
   }
-  $("#news-list").innerHTML = kabar.slice(1, 4).map(n => `
-    <li><a href="artikel.html?id=${encodeURIComponent(n.id)}">
-      <div class="meta"><span class="cat t-${window.SH.catTone(n.category)}">${esc(n.category)}</span><time datetime="${esc(n.date)}">${fmtDate(n.date)}</time></div>
-      <h3>${esc(n.title)}</h3>
-      <p>${esc(n.excerpt.length > 110 ? n.excerpt.slice(0, 107) + "..." : n.excerpt)}</p>
-    </a></li>`).join("");
-  $("#edu-cards").innerHTML = edu.slice(0, 3).map(cardHTML).join("");
+  fillRow("#kabar-row", "#kabar-ctl", kabar, "Belum ada kabar.");
+  fillRow("#edu-row", "#edu-ctl", edu, "Belum ada edukasi.");
 
   /* ===== Hari Besar, Buletin & Kampanye (jenis konten selain Kabar dan Edukasi) ===== */
   const extraTypes = window.SH.mediaTypes().filter(t => t.id !== "kabar" && t.id !== "edukasi" && window.MEDIA.some(m => m.tab === t.id));
@@ -382,8 +370,8 @@
       const cur = extraTypes.find(t => t.id === activeType);
       $("#info-lead").textContent = cur.lead || "";
       $("#info-all").href = "media.html?tab=" + encodeURIComponent(cur.id);
-      $("#info-all").textContent = "Lihat semua " + cur.label.toLowerCase();
-      $("#info-cards").innerHTML = window.MEDIA.filter(m => m.tab === activeType).sort(byDate).slice(0, 3).map(cardHTML).join("");
+      $("#info-all").textContent = "Cari & filter " + cur.label.toLowerCase();
+      fillRow("#info-row", "#info-ctl", window.MEDIA.filter(m => m.tab === activeType).sort(byDate), "Belum ada konten pada jenis ini.");
     }
     $("#itabs").addEventListener("click", e => { const b = e.target.closest("button[data-t]"); if (!b) return; activeType = b.dataset.t; renderInfo(); });
     renderInfo();

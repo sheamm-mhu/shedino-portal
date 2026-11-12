@@ -123,7 +123,7 @@
     .map(x => ({ x, s: (x.category === m.category ? 2 : 0) + (x.tab === m.tab ? 1 : 0) + (x.tags || []).filter(t => (m.tags || []).includes(t)).length }))
     .sort((a, b) => b.s - a.s || b.x.date.localeCompare(a.x.date))
     .slice(0, 3).map(r => r.x);
-  if (rel.length) { $("#related").hidden = false; $("#related-cards").innerHTML = rel.map(cardHTML).join(""); }
+  if (rel.length) { $("#related").hidden = false; $("#related-cards").innerHTML = rel.map(x => cardHTML(x)).join(""); }
 })();
 </script>
 </body>

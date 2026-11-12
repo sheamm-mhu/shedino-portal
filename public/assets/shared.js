@@ -106,11 +106,12 @@
     const meta = catMeta(m.category);
     // Gambar yang tinggi atau hampir persegi (poster, kalender, infografis) ditampilkan utuh, bukan dipotong.
     const play = m.videoUrl ? `<span class="playbadge" aria-hidden="true">${playIcon}</span>` : "";
-    const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.remove()" onload="if(this.naturalHeight&&this.naturalWidth/this.naturalHeight<1.5)this.classList.add('fit')">` : "";
-    return `<div class="cover t-${meta.tone}">${icon(iconOf(meta.icon, I.news))}${img}${play}</div>`;
+    const bg = m.image ? '<span class="cbg" aria-hidden="true" hidden></span>' : "";
+    const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.remove()" onload="coverFit(this)">` : "";
+    return `<div class="cover t-${meta.tone}">${icon(iconOf(meta.icon, I.news))}${bg}${img}${play}</div>`;
   }
   function cardHTML(m, lvl) {
-    lvl = lvl || 3;
+    lvl = lvl === 2 || lvl === 4 ? lvl : 3;   // hanya h2, h3, atau h4 (jangan terpengaruh indeks dari map)
     return `<a class="card" href="artikel.html?id=${encodeURIComponent(m.id)}">
       ${cover(m)}
       <div class="cb">
@@ -119,6 +120,59 @@
         <p>${esc(m.excerpt)}</p>
         <div class="tags">${m.videoUrl ? '<span class="tag">Video</span>' : ""}${m.fileUrl ? '<span class="tag">Ada lampiran</span>' : ""}${(m.tags || []).slice(0, 3).map(t => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
       </div></a>`;
+  }
+
+  /* Sampul menyesuaikan bentuk gambarnya: gambar hampir persegi atau tinggi (poster, kalender) tampil utuh
+     tanpa ruang kosong; sisa ruang di sisi diisi salinan buram dari gambar yang sama. */
+  window.coverFit = function (img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h) return;
+    const r = w / h, box = img.parentElement;
+    box.style.aspectRatio = String(Math.min(1.78, Math.max(0.8, r)));
+    if (r < 1.6) {
+      img.classList.add("fit");
+      const bg = box.querySelector(".cbg");
+      if (bg) { bg.style.backgroundImage = 'url("' + String(img.currentSrc || img.src).replace(/"/g, "%22") + '")'; bg.hidden = false; }
+    }
+  };
+
+  /* Baris yang bisa digeser ke samping: tombol panah, usap (layar sentuh), roda/trackpad, dan seret dengan mouse */
+  function carousel(row, ctl) {
+    const wrap = row.parentElement;
+    const prev = ctl && ctl.querySelector('[data-dir="-1"]'), next = ctl && ctl.querySelector('[data-dir="1"]');
+    const update = () => {
+      const max = row.scrollWidth - row.clientWidth, x = row.scrollLeft;
+      if (prev) prev.disabled = !(x > 4);
+      if (next) next.disabled = !(x < max - 4);
+      if (ctl) ctl.hidden = max <= 4;
+      wrap.classList.toggle("has-prev", x > 4);
+      wrap.classList.toggle("has-next", x < max - 4);
+    };
+    if (!row._hs) {
+      row._hs = true;
+      row.addEventListener("scroll", () => { if (!row._raf) row._raf = requestAnimationFrame(() => { row._raf = 0; update(); }); }, { passive: true });
+      window.addEventListener("resize", update);
+      if (ctl) ctl.addEventListener("click", e => {
+        const b = e.target.closest("[data-dir]"); if (!b) return;
+        const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+        row.scrollBy({ left: (+b.dataset.dir) * Math.max(row.clientWidth * 0.85, 280), behavior: reduce ? "auto" : "smooth" });
+      });
+      let sx = 0, sl = 0, down = false, moved = false;
+      row.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse" || e.button !== 0) return; down = true; moved = false; sx = e.clientX; sl = row.scrollLeft; });
+      row.addEventListener("pointermove", e => {
+        if (!down) return;
+        const dx = e.clientX - sx;
+        if (!moved && Math.abs(dx) > 6) { moved = true; row.classList.add("dragging"); try { row.setPointerCapture(e.pointerId); } catch (err) { /* abaikan */ } }
+        if (moved) row.scrollLeft = sl - dx;
+      });
+      const end = () => { if (!down) return; down = false; if (moved) { row.classList.remove("dragging"); row._noclick = true; setTimeout(() => { row._noclick = false; }, 0); } };
+      row.addEventListener("pointerup", end); row.addEventListener("pointercancel", end); row.addEventListener("lostpointercapture", end);
+      row.addEventListener("click", e => { if (row._noclick) { e.preventDefault(); e.stopPropagation(); } }, true);
+      row.addEventListener("dragstart", e => e.preventDefault());
+    }
+    row.scrollLeft = 0;
+    update();
+    setTimeout(update, 300);
   }
 
   /* ---------- Video: tautan YouTube, Vimeo, Google Drive, atau file video langsung ---------- */
@@ -393,6 +447,6 @@
     return window.AUTH;
   })();
 
-  window.SH = { $, $$, esc, I, icon, iconOf, waIcon, videoEmbed, videoMime, dlgOpen, dlgClose, fmtDate, pageName, safe, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
+  window.SH = { $, $$, esc, I, icon, iconOf, carousel, waIcon, videoEmbed, videoMime, dlgOpen, dlgClose, fmtDate, pageName, safe, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
     openDialog, openService, ensureAccess, setNavCurrent, spy, flashHash, loginUrl };
 })();
