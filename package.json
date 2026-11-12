@@ -2,5 +2,8 @@
   "name": "shedino-portal",
   "version": "1.0.0",
   "private": true,
-  "description": "SHEDINO - SHE Digital Information (situs statis)"
+  "description": "SHEDINO - SHE Digital Information (situs statis)",
+  "engines": {
+    "node": ">=18"
+  }
 }

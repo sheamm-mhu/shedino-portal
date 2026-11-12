@@ -167,6 +167,40 @@
     setTimeout(update, 300);
   }
 
+  /* ---------- Bagikan ke WhatsApp ---------- */
+  const longDate = iso => { const d = new Date(iso + "T00:00:00"); return isNaN(d) ? "" : d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }); };
+  /* Tautan untuk dibagikan: alamat /s/<id> agar WhatsApp dan sejenisnya menampilkan pratinjau (judul, ringkasan, gambar) artikel ini */
+  function shareLink(m) {
+    const C = window.CONFIG || {};
+    if (C.sharePreview !== false && /^https?:$/.test(location.protocol)) return location.origin + "/s/" + encodeURIComponent(m.id);
+    return location.href.split("#")[0];
+  }
+  /* Teks keterangan seperti kiriman di Saluran WhatsApp: judul tebal, tanggal, kutipan, tagar, lalu tautan */
+  function shareCaption(m, link) {
+    const lines = ["*" + String(m.title || "").replace(/\*/g, "") + "*"];
+    const d = longDate(m.date);
+    if (d) lines.push("Tanggal Publish : " + d);
+    let ex = String(m.excerpt || "").trim();
+    if (ex.length > 600) ex = ex.slice(0, 597).trimEnd() + "...";
+    if (ex) lines.push("", ex);
+    const tags = (m.tags || []).map(t => "#" + String(t).replace(/^#/, "").replace(/\s+/g, "")).filter(t => t.length > 1);
+    if (tags.length) lines.push("", tags.join("\n"));
+    lines.push("", link);
+    return lines.join("\n");
+  }
+  /* Ambil gambar sampul sebagai berkas agar bisa dikirim langsung lewat menu bagikan (perlu server gambar mengizinkan CORS) */
+  async function shareFile(m) {
+    if (!m.image) return null;
+    try {
+      const r = await fetch(m.image, { mode: "cors" });
+      if (!r.ok) return null;
+      const b = await r.blob();
+      if (!/^image\//.test(b.type) || b.size > 8 * 1024 * 1024) return null;
+      const ext = /png/.test(b.type) ? "png" : /webp/.test(b.type) ? "webp" : "jpg";
+      return new File([b], String(m.id || "gambar").replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 60) + "." + ext, { type: b.type });
+    } catch (e) { return null; }
+  }
+
   /* ---------- Video: tautan YouTube, Vimeo, Google Drive, atau file video langsung ---------- */
   function videoEmbed(u) {
     u = safe(String(u || "").trim());
@@ -507,6 +541,6 @@
     return window.AUTH;
   })();
 
-  window.SH = { $, $$, esc, I, icon, iconOf, carousel, waIcon, videoEmbed, videoMime, dlgOpen, dlgClose, fmtDate, pageName, safe, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
+  window.SH = { $, $$, esc, I, icon, iconOf, carousel, shareLink, shareCaption, shareFile, waIcon, videoEmbed, videoMime, dlgOpen, dlgClose, fmtDate, pageName, safe, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
     openDialog, openService, ensureAccess, setNavCurrent, spy, flashHash, loginUrl };
 })();

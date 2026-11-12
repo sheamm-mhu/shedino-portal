@@ -50,7 +50,7 @@
 <script>
 (async function () {
   await window.contentReady;
-  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent, typeLabel, dlgOpen, dlgClose, videoEmbed, videoMime } = window.SH;
+  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent, typeLabel, dlgOpen, dlgClose, videoEmbed, videoMime, shareLink, shareCaption, shareFile } = window.SH;
   const id = new URLSearchParams(location.search).get("id");
   const m = window.MEDIA.find(x => x.id === id);
   const C = window.CONFIG;
@@ -90,7 +90,8 @@
     <div class="tags" style="margin-top:1.5rem">${(m.tags || []).map(t => `<a class="tag" href="media.html?tag=${encodeURIComponent(t)}">#${esc(t)}</a>`).join("")}</div>
     <div class="share">
       <span class="lbl">Bagikan:</span>
-      <a class="btn sm2" id="sh-wa" style="text-decoration:none" target="_blank" rel="noopener" href="#">WhatsApp</a>
+      <a class="btn sm2" id="sh-wa" style="text-decoration:none" target="_blank" rel="noopener" href="#">Bagikan ke WhatsApp</a>
+      <button class="btn ghost sm2" id="sh-cap" type="button">Salin keterangan</button>
       <button class="btn ghost sm2" id="sh-copy" type="button">Salin tautan</button>
       <a class="btn ghost sm2" style="text-decoration:none" href="media.html?tab=${encodeURIComponent(m.tab)}">Kembali ke daftar</a>
     </div>`;
@@ -109,14 +110,28 @@
     dlg.addEventListener("click", () => dlgClose(dlg));
   }
 
-  const url = location.href.split("#")[0];
-  $("#sh-wa").href = "https://wa.me/?text=" + encodeURIComponent(m.title + "\n" + url);
-  $("#sh-copy").addEventListener("click", async e => {
-    const b = e.currentTarget;
-    try { await navigator.clipboard.writeText(url); b.textContent = "Tautan disalin"; }
-    catch (err) { window.prompt("Salin tautan ini:", url); }
-    setTimeout(() => { b.textContent = "Salin tautan"; }, 2000);
+  /* Bagikan: di ponsel yang mendukung, gambar sampul dikirim bersama keterangannya (seperti kiriman di Saluran WhatsApp);
+     selain itu dibuka WhatsApp dengan teks keterangan dan tautan pratinjau. */
+  const link = shareLink(m), caption = shareCaption(m, link);
+  const wa = $("#sh-wa");
+  wa.href = "https://wa.me/?text=" + encodeURIComponent(caption);
+  let file = null;
+  if (m.image && navigator.share && navigator.canShare) {
+    shareFile(m).then(f => { if (f && navigator.canShare({ files: [f] })) { file = f; wa.title = "Mengirim gambar beserta keterangannya"; } });
+  }
+  wa.addEventListener("click", async e => {
+    if (!file) return;                       // tanpa gambar atau tanpa dukungan: tautan wa.me biasa
+    e.preventDefault();
+    try { await navigator.share({ files: [file], text: caption, title: m.title }); }
+    catch (err) { if (err && err.name === "AbortError") return; window.open(wa.href, "_blank", "noopener"); }
   });
+  const copier = (btn, text, label, done) => btn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(text); btn.textContent = done; }
+    catch (err) { window.prompt("Salin teks ini:", text); }
+    setTimeout(() => { btn.textContent = label; }, 2000);
+  });
+  copier($("#sh-copy"), link, "Salin tautan", "Tautan disalin");
+  copier($("#sh-cap"), caption, "Salin keterangan", "Keterangan disalin");
 
   const rel = window.MEDIA
     .filter(x => x.id !== m.id)

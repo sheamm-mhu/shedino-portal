@@ -16,7 +16,8 @@ window.CONFIG = {
   whatsapp: "6281234567890",         // format internasional, tanpa + dan tanpa 0 di depan
   whatsappLabel: "+62 812-3456-7890",
   hours: "Senin sampai Jumat, 08.00 - 17.00 WIB",
-  credit: "Developed By YogaKhrsma",   // tulisan kecil di bawah footer (kosongkan untuk menyembunyikan)
+  credit: "Developed By YogaKhrsma",
+  sharePreview: true,   // true: tombol bagikan memakai tautan /s/<id> (pratinjau WhatsApp per artikel; butuh folder api di Vercel). Ubah ke false bila tidak dipakai.   // tulisan kecil di bawah footer (kosongkan untuk menyembunyikan)
 
   /* Teks halaman. Gunakan {nama}, {tagline}, dan {perusahaan} untuk menyisipkan nilai di atas. */
   heroImage: "",        // foto latar bagian atas beranda (diunggah lewat Admin > Pengaturan)

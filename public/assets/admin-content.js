@@ -52,21 +52,30 @@
   const mb = n => (n / 1048576).toFixed(1).replace(".", ",") + " MB";
   const extOf = name => (String(name).split(".").pop() || "").toLowerCase();
 
-  async function compressImage(file, maxW) {
+  async function compressImage(file, maxW, maxBytes) {
     if (file.type === "image/gif") return { blob: file, ext: "gif", type: "image/gif" };
     let bmp;
     try { bmp = await createImageBitmap(file); }
     catch (e) { throw new Error("Format gambar ini tidak dapat dibaca. Gunakan JPG, PNG, atau WebP."); }
-    const scale = Math.min(1, maxW / bmp.width);
-    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
-    const ctx = cv.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(bmp, 0, 0, w, h);
-    const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", 0.85));
-    if (!blob) throw new Error("Gambar tidak dapat diproses.");
+    let scale = Math.min(1, maxW / bmp.width), q = 0.85, blob = null;
+    const render = async () => {
+      const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      const ctx = cv.getContext("2d");
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(bmp, 0, 0, w, h);
+      blob = await new Promise(res => cv.toBlob(res, "image/jpeg", q));
+      if (!blob) throw new Error("Gambar tidak dapat diproses.");
+    };
+    await render();
+    // Batas ukuran (untuk gambar sampul artikel): WhatsApp sering tidak menampilkan pratinjau bila gambar terlalu besar.
+    // Turunkan kualitas dulu, lalu ukuran, sampai di bawah batas.
+    for (let i = 0; maxBytes && blob.size > maxBytes && i < 10; i++) {
+      if (q > 0.56) q = Math.max(0.5, q - 0.08); else if (scale * bmp.width > 640) scale *= 0.85; else break;
+      await render();
+    }
     // pakai file asli bila sudah JPEG kecil dan lebih ringan dari hasil kompresi
-    if (file.type === "image/jpeg" && file.size <= blob.size && file.size < 1024 * 1024) return { blob: file, ext: "jpg", type: "image/jpeg" };
+    if (file.type === "image/jpeg" && file.size <= blob.size && file.size < 1024 * 1024 && (!maxBytes || file.size <= maxBytes)) return { blob: file, ext: "jpg", type: "image/jpeg" };
     return { blob, ext: "jpg", type: "image/jpeg" };
   }
 
@@ -367,7 +376,7 @@
           let url;
           if (box.dataset.kind === "image") {
             if (!/^image\//.test(file.type)) throw new Error("Pilih file gambar (JPG, PNG, atau WebP).");
-            const r = await compressImage(file, 1600);
+            const r = await compressImage(file, 1600, box.dataset.folder === "artikel" ? 300 * 1024 : 0);
             url = await uploadTo(box.dataset.folder, r.blob, file.name.replace(/\.[^.]+$/, ""), r.ext, r.type);
           } else {
             const ext = extOf(file.name);

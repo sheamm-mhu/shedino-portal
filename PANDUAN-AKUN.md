@@ -72,6 +72,12 @@ Tab dan kartu layanan:
 - Jika nama tab diganti, layanan di tab itu ikut pindah otomatis. Jika tab dihapus, layanannya tampil sebagai kelompok tambahan sampai dipindahkan.
 - Di tab **Pengaturan** Anda juga mengubah teks halaman depan. Gunakan `{nama}`, `{tagline}`, dan `{perusahaan}` bila ingin nilai otomatis disisipkan.
 
+Membagikan artikel ke WhatsApp:
+- Buka artikel, klik **Bagikan ke WhatsApp**. Di ponsel, gambar sampul dikirim bersama keterangannya. Di iPhone tertentu WhatsApp bisa membuang teks keterangan; bila itu terjadi, klik **Salin keterangan** lalu tempel sendiri di bawah gambar.
+- Untuk memposting di Saluran WhatsApp: simpan gambar sampul, klik **Salin keterangan**, lalu tempel di kolom keterangan gambar.
+- Bila yang dibagikan hanya tautan (klik **Salin tautan**), WhatsApp menampilkan pratinjau berisi judul, ringkasan, dan gambar artikel. Tampilan akhirnya (ukuran dan pemotongan gambar, panjang teks) diatur oleh WhatsApp sendiri, jadi bisa berbeda dari kiriman gambar biasa.
+- Pastikan folder `api` dan file `vercel.json` ikut diunggah ke GitHub. Tanpa itu, tautan pratinjau `/s/...` tidak berfungsi; ubah `sharePreview` menjadi `false` di `public/assets/data.js` sebagai gantinya.
+
 Video di artikel (Kabar, Edukasi, Hari Besar, Buletin, Kampanye):
 - Di tab **Kabar & Media**, pada formulir artikel ada kolom **Video (opsional)**. Ada dua cara:
   1. **Unggah file video**: klik **Choose File**, pilih video MP4 (disarankan), WebM, atau MOV. Ukuran maksimal **50 MB**. Bilah kemajuan tampil selama mengunggah, jangan menutup halaman sampai muncul tulisan hijau Berhasil. Lalu klik **Simpan**.

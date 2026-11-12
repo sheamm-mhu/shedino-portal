@@ -54,6 +54,14 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 2. Di vercel.com pilih Add New > Project, impor repository, Framework Preset: Other, lalu Deploy.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
 
+## Bagikan artikel ke WhatsApp
+- Di halaman artikel ada tombol **Bagikan ke WhatsApp**. Di ponsel yang mendukung (Android Chrome, iPhone Safari), tombol ini mengirim **gambar sampul beserta keterangannya** (judul tebal, tanggal, kutipan, tagar, tautan), mirip kiriman di Saluran WhatsApp. Di perangkat lain, tombol membuka WhatsApp dengan teks keterangan dan tautan.
+- **Salin keterangan** menyalin teks yang sama untuk ditempel sendiri (misalnya di Saluran WhatsApp). **Salin tautan** menyalin tautan pratinjau.
+- Tautan yang dibagikan berbentuk `https://situs-anda/s/<id-artikel>`. Fungsi di folder `api/share.js` (Vercel) membaca artikel dari Supabase dan memberi mesin pratinjau WhatsApp, Facebook, Telegram, dan sejenisnya judul, ringkasan, dan gambar artikel itu. Pengunjung biasa langsung dialihkan ke halaman artikel. Hanya artikel yang sudah tayang yang dibaca.
+- Folder `api` dan `vercel.json` harus ikut diunggah ke GitHub. Bila tidak dipakai, ubah `sharePreview: true` menjadi `false` di `public/assets/data.js`.
+- Gambar sampul artikel otomatis dikecilkan hingga di bawah 300 KB saat diunggah, karena WhatsApp sering tidak menampilkan pratinjau untuk gambar yang lebih besar.
+- Pratinjau WhatsApp disimpan sementara (cache) oleh WhatsApp. Bila sudah pernah membagikan tautan yang sama sebelum fungsi aktif, pratinjaunya bisa tetap lama; coba artikel lain atau tambahkan `?v=2` di ujung tautan.
+
 ## Statistik SHE dan animasi
 - Kartu Statistik SHE berada di area foto (hero) di atas beranda, tepat di bawah kolom pencarian. Angkanya tetap hanya terlihat oleh akun yang sudah disetujui.
 - Elemen muncul dengan animasi setiap kali masuk layar saat digulir (diputar ulang saat digulir kembali). Saat berpindah halaman, isi halaman memudar keluar lalu halaman tujuan masuk dengan animasi. Semua animasi otomatis mati bila pengguna mengaktifkan "kurangi gerakan" di perangkatnya.
