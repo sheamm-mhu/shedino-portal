@@ -415,7 +415,7 @@ footer .brand .brand-txt small{color:#94A3B8}
 .hero--center .lead{margin-inline:auto}
 .hero--center .search{margin-inline:auto;width:min(700px,100%)}
 .hero--center .quick{justify-content:center}
-.hero--center .hero-stats{width:100%;margin-top:1.4rem}
+.hero-stats{width:100%;margin-top:1.6rem}
 .stat-card .sico{display:none}
 .hero .stat-card{background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.22);border-left-width:6px;color:#fff;align-items:center;text-align:center}
 .hero .stat-card .sl{color:#E2E8F0;font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
@@ -680,8 +680,31 @@ dialog.lb img{max-height:90vh;max-height:90dvh}
 }
 @media (prefers-reduced-motion:reduce){.hs-wrap::before,.hs-wrap::after{transition:none}}
 
-/* Sampul: gambar tinggi/persegi tampil utuh, sisi diisi salinan buram (tanpa bagian kosong) */
-.cover img.fit{object-fit:contain;background:transparent;z-index:1}
-.cover .cbg{position:absolute;inset:0;background-size:cover;background-position:center;filter:blur(18px) saturate(1.15) brightness(.72);transform:scale(1.2)}
-.cover .cbg[hidden]{display:none}
-.cover img{z-index:1}
+.cover img{z-index:1;object-position:50% 25%}
+
+/* Statistik SHE di area foto (v12) */
+.hero-stats-title{font-family:var(--display);font-size:1.2rem;font-weight:700;color:#fff;margin:0 0 .8rem;letter-spacing:-.01em}
+.hero:not(.hero--center) .hint{text-align:left}
+
+/* =====================================================================
+   ANIMASI (v12)
+   ===================================================================== */
+/* Masuk saat digulir: muncul setiap kali elemen masuk layar */
+.rv:not(.in){opacity:0}
+.rv.in{animation:rvUp .65s cubic-bezier(.2,.7,.2,1) var(--d,0ms) backwards}
+.rv-pop.in{animation-name:rvPop}
+@keyframes rvUp{from{opacity:0;transform:translateY(28px)}}
+@keyframes rvPop{from{opacity:0;transform:translateY(24px) scale(.96)}}
+
+/* Perpindahan halaman: halaman tujuan masuk dengan memudar; isi halaman lama memudar keluar saat tautan diklik */
+.pt main{animation:pageIn .45s cubic-bezier(.2,.7,.2,1) backwards}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}}
+.pt body.leaving main,.pt body.leaving footer{opacity:0;transform:translateY(-10px);transition:opacity .18s ease,transform .18s ease}
+
+@media (prefers-reduced-motion:reduce){
+  .rv:not(.in){opacity:1}
+  .rv.in{animation:none}
+  .pt main{animation:none}
+  .pt body.leaving main,.pt body.leaving footer{transition:none;transform:none}
+}
+@media print{.rv:not(.in){opacity:1!important}.rv.in{animation:none!important}}

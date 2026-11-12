@@ -104,11 +104,9 @@
 
   function cover(m) {
     const meta = catMeta(m.category);
-    // Gambar yang tinggi atau hampir persegi (poster, kalender, infografis) ditampilkan utuh, bukan dipotong.
     const play = m.videoUrl ? `<span class="playbadge" aria-hidden="true">${playIcon}</span>` : "";
-    const bg = m.image ? '<span class="cbg" aria-hidden="true" hidden></span>' : "";
     const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.remove()" onload="coverFit(this)">` : "";
-    return `<div class="cover t-${meta.tone}">${icon(iconOf(meta.icon, I.news))}${bg}${img}${play}</div>`;
+    return `<div class="cover t-${meta.tone}">${icon(iconOf(meta.icon, I.news))}${img}${play}</div>`;
   }
   function cardHTML(m, lvl) {
     lvl = lvl === 2 || lvl === 4 ? lvl : 3;   // hanya h2, h3, atau h4 (jangan terpengaruh indeks dari map)
@@ -122,18 +120,12 @@
       </div></a>`;
   }
 
-  /* Sampul menyesuaikan bentuk gambarnya: gambar hampir persegi atau tinggi (poster, kalender) tampil utuh
-     tanpa ruang kosong; sisa ruang di sisi diisi salinan buram dari gambar yang sama. */
+  /* Sampul kartu mengisi penuh tanpa sisi kosong. Bentuk kotak mengikuti bentuk gambar (antara 4:5 dan 16:9);
+     gambar yang lebih ekstrem dipotong sedikit. Gambar utuh tanpa potongan tampil di halaman artikel. */
   window.coverFit = function (img) {
     const w = img.naturalWidth, h = img.naturalHeight;
     if (!w || !h) return;
-    const r = w / h, box = img.parentElement;
-    box.style.aspectRatio = String(Math.min(1.78, Math.max(0.8, r)));
-    if (r < 1.6) {
-      img.classList.add("fit");
-      const bg = box.querySelector(".cbg");
-      if (bg) { bg.style.backgroundImage = 'url("' + String(img.currentSrc || img.src).replace(/"/g, "%22") + '")'; bg.hidden = false; }
-    }
+    img.parentElement.style.aspectRatio = String(Math.min(1.78, Math.max(0.8, w / h)));
   };
 
   /* Baris yang bisa digeser ke samping: tombol panah, usap (layar sentuh), roda/trackpad, dan seret dengan mouse */
@@ -436,9 +428,77 @@
     }
   }
 
+  /* ---------- Animasi: masuk saat digulir dan perpindahan halaman ---------- */
+  const REVEAL = [
+    [".sec-head, .grp-head, .grp-note, .hero-stats-title", "up"],
+    [".gtabs-wrap, .toolbar, .doc-tools, .tagcloud, .result-info", "up"],
+    [".card, .scard, .stat-card, .pillar", "pop"],
+    [".kplh-scroll, .kplh-hint", "up"],
+    [".table-wrap tbody tr", "up"],
+    ["#faq-list details", "up"],
+    [".about-top > *, .contact > *", "up"],
+    [".art > *:not(.cards)", "up"],
+    [".foot-grid > *, .foot-bottom", "up"]
+  ];
+  function initMotion() {
+    const reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+    /* Perpindahan halaman (sama di semua peramban): isi halaman memudar keluar saat tautan diklik,
+       lalu halaman tujuan masuk dengan animasi. Header dan tombol WhatsApp tetap diam. */
+    document.documentElement.classList.add("pt");
+    if (!reduce) {
+      document.addEventListener("click", e => {
+        const a = e.target.closest && e.target.closest("a[href]");
+        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if ((a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+        let u; try { u = new URL(a.href, location.href); } catch (err) { return; }
+        if (u.origin !== location.origin) return;
+        const clean = p => p.replace(/\.html$/, "").replace(/\/index$/, "/");
+        if (clean(u.pathname) === clean(location.pathname) && u.search === location.search) return;   // hanya pindah bagian di halaman yang sama
+        e.preventDefault();
+        document.body.classList.add("leaving");
+        setTimeout(() => { location.href = a.href; }, 190);
+      });
+      window.addEventListener("pageshow", ev => { if (ev.persisted) document.body.classList.remove("leaving"); });
+    }
+
+    /* Animasi masuk: elemen muncul setiap kali masuk ke layar, dan diputar ulang saat digulir kembali */
+    if (reduce || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        const el = en.target;
+        if (en.isIntersecting) el.classList.add("in");
+        else { const r = en.boundingClientRect; if (r.bottom < 0 || r.top > innerHeight) el.classList.remove("in"); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0 });
+    const seen = new WeakSet();
+    const scan = () => {
+      REVEAL.forEach(([sel, kind]) => {
+        document.body.querySelectorAll(sel).forEach(el => {
+          if (el.closest("dialog, header.top")) return;
+          if (seen.has(el) || !el.parentElement) return;
+          seen.add(el);
+          const sibs = Array.from(el.parentElement.children).filter(c => c.matches(sel));
+          let i = sibs.indexOf(el);
+          if (el.closest(".hscroll")) i = 0;
+          el.style.setProperty("--d", Math.min(i, 6) * 70 + "ms");
+          el.classList.add("rv");
+          if (kind === "pop") el.classList.add("rv-pop");
+          io.observe(el);
+        });
+      });
+    };
+    scan();
+    if ("MutationObserver" in window) {
+      const mo = new MutationObserver(scan);
+      ["main", "#site-footer"].forEach(sel => { const n = document.querySelector(sel); if (n) mo.observe(n, { childList: true, subtree: true }); });
+    }
+  }
+
   /* ---------- Mulai ---------- */
   buildChrome();
   initNavCurrent();
+  initMotion();
   Promise.resolve(window.contentReady).then(() => { renderNav(); initNavCurrent(); buildFooterAndWA(); });
   window.authReady = (async () => {
     if (!Auth.configured) return null;

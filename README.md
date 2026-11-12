@@ -54,9 +54,13 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 2. Di vercel.com pilih Add New > Project, impor repository, Framework Preset: Other, lalu Deploy.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
 
+## Statistik SHE dan animasi
+- Kartu Statistik SHE berada di area foto (hero) di atas beranda, tepat di bawah kolom pencarian. Angkanya tetap hanya terlihat oleh akun yang sudah disetujui.
+- Elemen muncul dengan animasi setiap kali masuk layar saat digulir (diputar ulang saat digulir kembali). Saat berpindah halaman, isi halaman memudar keluar lalu halaman tujuan masuk dengan animasi. Semua animasi otomatis mati bila pengguna mengaktifkan "kurangi gerakan" di perangkatnya.
+
 ## Tampilan Kabar, Edukasi, dan Hari Besar/Buletin/Kampanye di beranda
 - Semua artikel ditampilkan dalam satu baris yang bisa digeser ke samping: tombol panah (kiri dan kanan), usap di layar sentuh, trackpad atau Shift+roda mouse, seret dengan mouse, atau tombol panah di keyboard. Tidak perlu membuka "Lihat semua".
-- Gambar sampul menyesuaikan bentuknya: gambar tinggi atau hampir persegi (poster, kalender, infografis) tampil utuh tanpa balok kosong, dengan sisi diisi salinan buram dari gambar yang sama. Foto lebar tetap mengisi penuh kartu.
+- Gambar sampul kartu mengisi penuh tanpa sisi kosong: bentuk kotak mengikuti bentuk gambar (antara 4:5 dan 16:9), dan gambar yang lebih ekstrem dipotong sedikit. Saat artikel dibuka, gambar tampil utuh sesuai bentuk aslinya dan bisa diperbesar.
 - Tautan "Cari & filter" membuka halaman Kabar & Media yang punya pencarian, filter kategori dan tahun, serta tagar.
 
 ## Ramah ponsel (iOS dan Android)

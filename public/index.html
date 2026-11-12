@@ -52,6 +52,12 @@
       </div>
     </div>
 
+    <div class="hero-stats hero-in d2" id="statistik">
+      <h2 class="hero-stats-title" id="h-stat">Statistik SHE</h2>
+      <div class="stat-grid" id="stats"></div>
+      <p class="hint" id="stat-hint"></p>
+    </div>
+
   </div>
 </section>
 
@@ -67,20 +73,6 @@
     </div>
     <div id="kplh-print-area"><div class="kplh-scroll"><div class="kplh" id="kplh"></div></div></div>
     <p class="hint kplh-hint">Geser papan ke samping untuk melihat seluruh kolom.</p>
-  </div>
-</section>
-
-<!-- STATISTIK -->
-<section class="sec tight" id="statistik" aria-labelledby="h-stat">
-  <div class="wrap">
-    <div class="sec-head">
-      <div>
-        <h2 id="h-stat">Statistik SHE</h2>
-        <p>Indikator utama kinerja keselamatan, kesehatan, dan lingkungan. Angka hanya dapat dilihat oleh akun yang sudah disetujui.</p>
-      </div>
-    </div>
-    <div class="stat-grid" id="stats"></div>
-    <p class="hint" id="stat-hint"></p>
   </div>
 </section>
 
@@ -263,14 +255,7 @@
     hero.classList.add("hero--img");
     hero.style.backgroundImage = `linear-gradient(rgba(15,23,42,${a}), rgba(15,23,42,${Math.min(0.96, a + 0.12)})), url("${String(heroImg).replace(/"/g, "%22")}")`;
   }
-  if (C.heroLayout === "terpusat") {
-    hero.classList.add("hero--center");
-    const wrap = $(".hero .wrap"), box = document.createElement("div");
-    box.className = "hero-stats";
-    box.appendChild($("#stats")); box.appendChild($("#stat-hint"));
-    wrap.appendChild(box);   // kartu statistik tepat di bawah pencarian
-    $("#statistik").hidden = true;
-  }
+  if (C.heroLayout === "terpusat") hero.classList.add("hero--center");
   $("#judul").textContent = tx(C.heroTitle);
   $("#hero-lead").textContent = tx(C.heroLead);
   $("#svc-intro").textContent = tx(C.servicesIntro);

@@ -541,7 +541,7 @@
         <h3>Tampilan bagian atas beranda (hero)</h3>
         <label>Tata letak<select data-s="heroLayout">
           <option value="standar"${D.heroLayout !== "terpusat" ? " selected" : ""}>Standar: judul dan pencarian rata kiri</option>
-          <option value="terpusat"${D.heroLayout === "terpusat" ? " selected" : ""}>Terpusat: judul di tengah, pencarian, dan kartu statistik di atas foto</option>
+          <option value="terpusat"${D.heroLayout === "terpusat" ? " selected" : ""}>Terpusat: judul, pencarian, dan kartu statistik berada di tengah</option>
         </select></label>
         ${imgBoxHTML("heroImage", "hero", "Foto latar", D.heroImage || "", 2000, "Pakai foto lebar (landscape), minimal 1600 piksel. Boleh dikosongkan untuk latar polos.")}
         <label>Gelapnya lapisan di atas foto: <output id="hov"></output>
