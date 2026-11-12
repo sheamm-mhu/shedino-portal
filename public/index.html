@@ -2,10 +2,16 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SHEDINO | Digital Information SHE</title>
-<meta name="description" content="SHEDINO (Digital Information SHE) adalah portal informasi digital Safety, Health & Environment: layanan, prosedur, kabar, edukasi, dan statistik SHE dalam satu pintu.">
-<meta property="og:title" content="SHEDINO | Digital Information SHE">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SHEDINO">
+<meta name="format-detection" content="telephone=no">
+<title>SHEDINO | SHE Digital Information</title>
+<meta name="description" content="SHEDINO (SHE Digital Information) adalah portal informasi digital Safety, Health & Environment: layanan, prosedur, kabar, edukasi, dan statistik SHE dalam satu pintu.">
+<meta property="og:title" content="SHEDINO | SHE Digital Information">
 <meta property="og:description" content="Portal informasi digital Safety, Health & Environment dalam satu pintu.">
 <meta property="og:locale" content="id_ID">
 <meta name="theme-color" content="#0F172A">
@@ -244,7 +250,7 @@
 <script>
 (async function () {
   await window.contentReady;
-  const { $, $$, esc, I, icon, fmtDate, groupList, groupByName, serviceCardHTML, groupTabsHTML, tx, cover, cardHTML, openDialog, openService, ensureAccess, spy, flashHash } = window.SH;
+  const { $, $$, esc, I, icon, iconOf, fmtDate, groupList, groupByName, serviceCardHTML, groupTabsHTML, tx, cover, cardHTML, openDialog, openService, ensureAccess, spy, flashHash } = window.SH;
   const C = window.CONFIG;
 
   /* Isi pengaturan */
@@ -284,7 +290,7 @@
   $("#c-mail-t").textContent = C.email;
   $("#c-addr").innerHTML = esc(C.address) + (C.mapsUrl ? ` <a href="${esc(C.mapsUrl)}" target="_blank" rel="noopener" style="text-decoration:underline">Buka peta</a>` : "");
   $("#c-hours").textContent = C.hours;
-  $("#ci-wa").innerHTML = icon(I.chat);
+  $("#ci-wa").innerHTML = window.SH.waIcon;
   $("#ci-mail").innerHTML = icon(I.mail);
   $("#ci-pin").innerHTML = icon(I.pin);
   $("#ci-clock").innerHTML = icon(I.clock);
@@ -313,9 +319,9 @@
         const v = r && r.value !== "" && r.value != null ? r.value : "-";
         const unit = (r && r.unit) || d.unit;
         const meta = [r && r.note ? r.note : "", r && r.updated_at ? "Diperbarui " + fmtDate(r.updated_at.slice(0, 10)) : ""].filter(Boolean).join(" | ");
-        return `<div class="stat-card ${tone}"><span class="sico">${icon(I[d.icon] || I.chart)}</span><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
+        return `<div class="stat-card ${tone}"><span class="sico">${icon(iconOf(d.icon, I.chart))}</span><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
       }
-      return `<button class="stat-card locked ${tone}" type="button" data-lock aria-label="${esc(d.label)}, terkunci. Masuk untuk melihat"><span class="sico">${icon(I[d.icon] || I.chart)}</span><span class="sl">${esc(d.label)}</span><span class="sv">&bull;&bull;&bull;</span><span class="sn">${icon(I.lock)} Masuk untuk melihat</span></button>`;
+      return `<button class="stat-card locked ${tone}" type="button" data-lock><span class="sico">${icon(iconOf(d.icon, I.chart))}</span><span class="sl">${esc(d.label)}</span><span class="sv" aria-hidden="true">&bull;&bull;&bull;</span><span class="sn">${icon(I.lock)} Masuk untuk melihat</span></button>`;
     }).join("");
     const hint = $("#stat-hint");
     if (failed) hint.textContent = "Data statistik belum tersedia. Pastikan skema database terbaru (supabase/schema.sql) sudah dijalankan.";
@@ -351,7 +357,7 @@
   if (first) {
     $("#feature").innerHTML = `
       <div>
-        <div class="meta"><span class="cat t-${window.SH.catTone(first.category)}">${esc(first.category)}</span><time datetime="${first.date}">${fmtDate(first.date)}</time></div>
+        <div class="meta"><span class="cat t-${window.SH.catTone(first.category)}">${esc(first.category)}</span><time datetime="${esc(first.date)}">${fmtDate(first.date)}</time></div>
         <h3>${esc(first.title)}</h3>
         <p>${esc(first.excerpt)}</p>
       </div>
@@ -359,7 +365,7 @@
   }
   $("#news-list").innerHTML = kabar.slice(1, 4).map(n => `
     <li><a href="artikel.html?id=${encodeURIComponent(n.id)}">
-      <div class="meta"><span class="cat t-${window.SH.catTone(n.category)}">${esc(n.category)}</span><time datetime="${n.date}">${fmtDate(n.date)}</time></div>
+      <div class="meta"><span class="cat t-${window.SH.catTone(n.category)}">${esc(n.category)}</span><time datetime="${esc(n.date)}">${fmtDate(n.date)}</time></div>
       <h3>${esc(n.title)}</h3>
       <p>${esc(n.excerpt.length > 110 ? n.excerpt.slice(0, 107) + "..." : n.excerpt)}</p>
     </a></li>`).join("");
@@ -392,9 +398,9 @@
     $("#docs").innerHTML = list.map(d => `
       <tr id="${d.id}">
         <td class="name">${esc(d.title)}</td>
-        <td>${esc(d.type)}</td>
-        <td><span class="ft f-${d.fmt.toLowerCase()}">${esc(d.fmt)}</span></td>
-        <td>${fmtDate(d.date)}</td>
+        <td data-l="Jenis">${esc(d.type)}</td>
+        <td data-l="Format"><span class="ft f-${String(d.fmt).toLowerCase().replace(/[^a-z0-9]/g, "")}">${esc(d.fmt)}</span></td>
+        <td data-l="Diperbarui">${fmtDate(d.date)}</td>
         <td><button class="dl" data-doc="${d.id}" aria-label="Unduh ${esc(d.title)}">Unduh</button></td>
       </tr>`).join("");
     $("#docs-empty").hidden = list.length > 0;
@@ -416,7 +422,7 @@
   const input = $("#q"), box = $("#results");
   let hits = [], idx = -1;
   const ALL = [
-    ...window.SERVICES.map(s => ({ kind: "Layanan", title: s.title, desc: s.group + " | " + s.desc, href: "layanan.html#" + s.id, icon: I[s.icon], hay: s.title + " " + s.desc + " " + s.group })),
+    ...window.SERVICES.map(s => ({ kind: "Layanan", title: s.title, desc: s.group + " | " + s.desc, href: "layanan.html#" + s.id, icon: iconOf(s.icon), hay: s.title + " " + s.desc + " " + s.group })),
     ...window.DOCS.map(d => ({ kind: "Prosedur & dokumen", title: d.title, desc: d.type + " | " + d.fmt, href: "#" + d.id, local: d.id, icon: I.file, hay: d.title + " " + d.type })),
     ...window.MEDIA.map(m => ({ kind: "Kabar & media", title: m.title, desc: window.SH.typeLabel(m.tab) + " | " + fmtDate(m.date), href: "artikel.html?id=" + encodeURIComponent(m.id), icon: I.news, hay: m.title + " " + m.excerpt + " " + m.category + " " + (m.tags || []).join(" ") }))
   ];

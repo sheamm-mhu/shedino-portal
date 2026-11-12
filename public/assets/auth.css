@@ -160,3 +160,50 @@ dialog.cdlg::backdrop{background:rgba(10,25,40,.6)}
 .krow input{padding:.5rem .6rem}
 .krow.khead{font-weight:700;color:var(--slate);font-size:.9rem}
 .krow .acts{display:flex;gap:.25rem}
+
+/* =====================================================================
+   RAMAH PONSEL (iOS dan Android) - v8
+   ===================================================================== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-wrap:break-word;-webkit-tap-highlight-color:rgba(225,29,72,.14)}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{font-size:max(1rem,16px)}
+input[type=search],input[type=date]{-webkit-appearance:none;appearance:none}
+input[type=date]{min-height:2.9rem}
+:root{--gutter:1.25rem}
+@supports (padding:max(0px)){:root{--gutter:max(1.25rem,env(safe-area-inset-left,0px),env(safe-area-inset-right,0px))}}
+.wrap{width:min(1160px,calc(100% - 2*var(--gutter)))}
+.top{padding-top:env(safe-area-inset-top,0px)}
+.auth{min-height:calc(100vh - 64px);min-height:calc(100dvh - 64px)}
+.toast{bottom:max(1.5rem,env(safe-area-inset-bottom,0px))}
+dialog.cdlg{max-height:92vh;max-height:92dvh}
+.cdlg form{max-height:92vh;max-height:92dvh}
+dialog:not([open]){display:none}
+dialog.polyfill[open]{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:200;display:block;max-height:92vh;overflow:auto;box-shadow:0 0 0 100vmax rgba(10,25,40,.6)}
+.setgrid,.setgrid>*,.cdlg form>*{min-width:0}
+@media (max-width:900px),(pointer:coarse){
+  .btn,.btn.sm,.btn.sm2,.atabs button,.tabs button,.linkbtn,.top nav a,.top nav button,.stat{min-height:44px}
+  .btn.sm,.btn.sm2,.atabs button,.linkbtn{display:inline-flex;align-items:center;justify-content:center}
+  .brand{min-height:44px}
+  .fchk input{width:24px;height:24px}
+  .fchk{min-height:44px}
+}
+@media (max-width:860px){
+  .auth-main{order:-1}
+  .auth-side{padding:1.5rem 1.25rem}
+  .auth-side img{width:56px;height:56px;margin-bottom:1rem}
+}
+
+@media (max-width:900px),(pointer:coarse){
+  select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]){min-height:44px}
+}
+
+@media (max-width:900px),(pointer:coarse){
+  .btn.sm,.btn.sm2{min-width:44px}
+}
+
+[hidden]{display:none!important}
+
+/* ===== Unggah video (v9) ===== */
+.vprog{width:100%;height:14px;accent-color:var(--crimson)}
+.imgprev video{max-width:100%;max-height:240px;display:block;background:#000}

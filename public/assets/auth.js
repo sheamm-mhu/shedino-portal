@@ -93,7 +93,7 @@
   }
 
   window.Auth = {
-    configured, client, friendly,
+    configured, client, friendly, url, key,
     getSession, getState, isApproved, isAdmin,
     signIn, signUp, signOut, sendReset, updatePassword, safeNext
   };

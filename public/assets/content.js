@@ -15,13 +15,13 @@
   }
   window.safeUrl = safeUrl;
 
-  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "teamPhoto", "heroImage", "heroOverlay", "heroLayout", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
+  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "credit", "teamPhoto", "heroImage", "heroOverlay", "heroLayout", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   const TONES = ["blue", "teal", "amber", "red", "gray"];
 
   const mapMedia = r => ({
     id: r.id, tab: r.tab, date: String(r.pub_date).slice(0, 10), category: r.category,
     title: r.title, excerpt: r.excerpt || "", tags: Array.isArray(r.tags) ? r.tags : [],
-    image: safeUrl(r.image), fileUrl: safeUrl(r.file_url), body: Array.isArray(r.body) ? r.body : []
+    image: safeUrl(r.image), fileUrl: safeUrl(r.file_url), videoUrl: safeUrl(r.video_url), body: Array.isArray(r.body) ? r.body : []
   });
   const mapDoc = r => ({
     id: r.id, title: r.title, type: r.doc_type, fmt: String(r.fmt || "PDF").toUpperCase(),

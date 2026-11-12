@@ -2,7 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SHEDINO">
+<meta name="format-detection" content="telephone=no">
 <title>Artikel | SHEDINO</title>
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" type="image/png" href="assets/favicon-64.png">
@@ -44,7 +50,7 @@
 <script>
 (async function () {
   await window.contentReady;
-  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent, typeLabel } = window.SH;
+  const { $, esc, I, icon, fmtDate, cover, catTone, cardHTML, setNavCurrent, typeLabel, dlgOpen, dlgClose, videoEmbed, videoMime } = window.SH;
   const id = new URLSearchParams(location.search).get("id");
   const m = window.MEDIA.find(x => x.id === id);
   const C = window.CONFIG;
@@ -60,13 +66,25 @@
   const tabName = typeLabel(m.tab);
   document.title = m.title + " | " + C.name;
   setNavCurrent(m.tab);
-  $("#crumbs").innerHTML = `<a href="index.html">Beranda</a> / <a href="media.html?tab=${m.tab}">${tabName}</a> / <span>${esc(m.category)}</span>`;
+  $("#crumbs").innerHTML = `<a href="index.html">Beranda</a> / <a href="media.html?tab=${encodeURIComponent(m.tab)}">${esc(tabName)}</a> / <span>${esc(m.category)}</span>`;
+
+  /* Video: pemutar tertanam (YouTube, Vimeo, Google Drive), file video sendiri, atau tautan keluar */
+  const video = videoEmbed(m.videoUrl);
+  let videoBlock = "";
+  if (video && video.kind === "iframe") {
+    videoBlock = `<div class="art-video"><iframe src="${esc(video.src)}" title="${esc(m.title)}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>`;
+  } else if (video && video.kind === "file") {
+    videoBlock = `<div class="art-video file"><video controls playsinline preload="metadata"${m.image ? ` poster="${esc(m.image)}"` : ""}><source src="${esc(video.src)}" type="${videoMime(video.src)}">Browser Anda tidak mendukung pemutar video. <a href="${esc(video.src)}" target="_blank" rel="noopener">Buka videonya</a>.</video></div>`;
+  } else if (video) {
+    videoBlock = `<p style="margin:1.5rem 0"><a class="btn" style="text-decoration:none;display:inline-block" href="${esc(video.src)}" target="_blank" rel="noopener">Tonton video</a></p>`;
+  }
 
   const body = (m.body || []).map(b => typeof b === "string" ? `<p>${esc(b)}</p>` : `<h2>${esc(b.h)}</h2>`).join("");
   $("#art").innerHTML = `
-    <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><span>${tabName}</span><time datetime="${m.date}">${fmtDate(m.date)}</time></div>
+    <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><span>${esc(tabName)}</span><time datetime="${esc(m.date)}">${fmtDate(m.date)}</time></div>
     <h1>${esc(m.title)}</h1>
-    ${cover(m)}
+    ${videoBlock}
+    ${!video && m.image ? `<figure class="art-fig" id="fig"><button type="button" class="art-zoom" id="zoom" aria-label="Perbesar gambar"><img src="${esc(m.image)}" alt="${esc(m.title)}"></button><figcaption>Klik gambar untuk memperbesar</figcaption></figure>` : (!video ? cover(m) : "")}
     <div class="body">${body}</div>
     ${m.fileUrl ? `<p style="margin:1.4rem 0 0"><a class="btn" style="text-decoration:none;display:inline-block" href="${esc(m.fileUrl)}" target="_blank" rel="noopener">Unduh lampiran</a></p>` : ""}
     <div class="tags" style="margin-top:1.5rem">${(m.tags || []).map(t => `<a class="tag" href="media.html?tag=${encodeURIComponent(t)}">#${esc(t)}</a>`).join("")}</div>
@@ -74,8 +92,22 @@
       <span class="lbl">Bagikan:</span>
       <a class="btn sm2" id="sh-wa" style="text-decoration:none" target="_blank" rel="noopener" href="#">WhatsApp</a>
       <button class="btn ghost sm2" id="sh-copy" type="button">Salin tautan</button>
-      <a class="btn ghost sm2" style="text-decoration:none" href="media.html?tab=${m.tab}">Kembali ke daftar</a>
+      <a class="btn ghost sm2" style="text-decoration:none" href="media.html?tab=${encodeURIComponent(m.tab)}">Kembali ke daftar</a>
     </div>`;
+
+  /* Gambar utuh dan dapat diperbesar */
+  const fig = $("#fig");
+  if (fig) {
+    const im = $("img", fig);
+    im.addEventListener("error", () => { fig.outerHTML = cover(m); });
+    const dlg = document.createElement("dialog");
+    dlg.className = "lb";
+    dlg.setAttribute("aria-label", "Gambar diperbesar");
+    dlg.innerHTML = `<img src="${esc(m.image)}" alt="${esc(m.title)}"><button type="button">Tutup</button>`;
+    document.body.appendChild(dlg);
+    $("#zoom").addEventListener("click", () => dlgOpen(dlg));
+    dlg.addEventListener("click", () => dlgClose(dlg));
+  }
 
   const url = location.href.split("#")[0];
   $("#sh-wa").href = "https://wa.me/?text=" + encodeURIComponent(m.title + "\n" + url);

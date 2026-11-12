@@ -2,7 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SHEDINO">
+<meta name="format-detection" content="telephone=no">
 <title>Kabar &amp; Media | SHEDINO</title>
 <meta name="description" content="Kabar SHE, edukasi, hari besar, buletin, dan kampanye keselamatan, kesehatan, dan lingkungan dari SHEDINO.">
 <meta name="theme-color" content="#0F172A">
@@ -90,7 +96,7 @@
   }
 
   function renderTabs() {
-    $("#tabs").innerHTML = TABS.map(t => `<button class="tab" data-tab="${t.k}" aria-pressed="${t.k === state.tab}">${t.t}</button>`).join("");
+    $("#tabs").innerHTML = TABS.map(t => `<button class="tab" data-tab="${esc(t.k)}" aria-pressed="${t.k === state.tab}">${esc(t.t)}</button>`).join("");
     const cur = TABS.find(t => t.k === state.tab);
     $("#lead").textContent = cur.lead;
     $("#h1").textContent = state.tab === "semua" ? "Kabar & Media" : cur.t;
@@ -129,7 +135,7 @@
     const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
     if (state.page > pages) state.page = pages;
     const slice = list.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
-    $("#grid").innerHTML = slice.map(cardHTML).join("");
+    $("#grid").innerHTML = slice.map(m => cardHTML(m, 2)).join("");
     $("#empty").hidden = list.length > 0;
     $("#info").textContent = list.length ? `Menampilkan ${slice.length} dari ${list.length} konten` : "";
 

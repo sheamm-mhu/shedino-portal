@@ -41,7 +41,14 @@
     check:"M5 12l4 4 10-10",
     link:"M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"
   };
+  /* Pencarian aman: hanya kunci milik sendiri (bukan constructor, __proto__, dan sejenisnya) */
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const TONES = ["blue", "teal", "amber", "red", "gray"];
+  const safeTone = t => TONES.indexOf(t) >= 0 ? t : "gray";
   const icon = d => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+  /* Logo WhatsApp (Simple Icons, CC0) */
+  const playIcon = `<svg class="ico ico-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.5.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>`;
+  const waIcon = `<svg class="ico ico-fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>`;
 
   /* ---------- Tab layanan dan kartu layanan ---------- */
   const groupList = () => (window.GROUPS || []).slice();
@@ -58,7 +65,7 @@
   function serviceCardHTML(s) {
     const g = groupByName(s.group);
     return `<article class="scard" id="${esc(s.id)}">
-      <span class="sic t-${g.tone || "gray"}">${icon(I[s.icon] || I.file)}</span>
+      <span class="sic t-${safeTone(g.tone)}">${icon(iconOf(s.icon))}</span>
       <span class="badge ${s.login ? "lock" : "open"}">${s.login ? icon(I.lock) + " Perlu login" : "Terbuka"}</span>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.desc)}</p>
@@ -70,7 +77,7 @@
     const out = [];
     if (withAll) out.push(`<button class="gtab" type="button" data-g="Semua" aria-pressed="${active === "Semua"}"><i class="dot"></i>Semua</button>`);
     groupList().forEach(g => {
-      const ic = icon(I[g.icon] || I.file);
+      const ic = icon(iconOf(g.icon));
       if (g.url) {
         const u = safe(g.url), ext = /^https?:/i.test(u);
         if (u) out.push(`<a class="gtab" href="${esc(u)}"${ext ? ' target="_blank" rel="noopener"' : ""}><i class="dot"></i>${ic}${esc(g.name)}<span class="ext" aria-hidden="true">&nearr;</span></a>`);
@@ -91,29 +98,56 @@
     "Pengoperasian Unit": { tone: "amber", icon: "truck" },
     "Organisasi & Sistem Manajemen": { tone: "gray", icon: "users" }
   };
-  const catTone = c => (CAT_META[c] || { tone: "gray" }).tone;
+  const catMeta = c => own(CAT_META, c) ? CAT_META[c] : { tone: "gray", icon: "news" };
+  const catTone = c => catMeta(c).tone;
+  const iconOf = (name, fb) => own(I, name) ? I[name] : (fb || I.file);
 
   function cover(m) {
-    const meta = CAT_META[m.category] || { tone: "gray", icon: "news" };
-    const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.remove()">` : "";
-    return `<div class="cover t-${meta.tone}">${icon(I[meta.icon])}${img}</div>`;
+    const meta = catMeta(m.category);
+    // Gambar yang tinggi atau hampir persegi (poster, kalender, infografis) ditampilkan utuh, bukan dipotong.
+    const play = m.videoUrl ? `<span class="playbadge" aria-hidden="true">${playIcon}</span>` : "";
+    const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy" onerror="this.remove()" onload="if(this.naturalHeight&&this.naturalWidth/this.naturalHeight<1.5)this.classList.add('fit')">` : "";
+    return `<div class="cover t-${meta.tone}">${icon(iconOf(meta.icon, I.news))}${img}${play}</div>`;
   }
-  function cardHTML(m) {
+  function cardHTML(m, lvl) {
+    lvl = lvl || 3;
     return `<a class="card" href="artikel.html?id=${encodeURIComponent(m.id)}">
       ${cover(m)}
       <div class="cb">
-        <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><time datetime="${m.date}">${fmtDate(m.date)}</time></div>
-        <h3>${esc(m.title)}</h3>
+        <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><time datetime="${esc(m.date)}">${fmtDate(m.date)}</time></div>
+        <h${lvl}>${esc(m.title)}</h${lvl}>
         <p>${esc(m.excerpt)}</p>
-        <div class="tags">${m.fileUrl ? '<span class="tag">Ada lampiran</span>' : ""}${(m.tags || []).slice(0, 3).map(t => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
+        <div class="tags">${m.videoUrl ? '<span class="tag">Video</span>' : ""}${m.fileUrl ? '<span class="tag">Ada lampiran</span>' : ""}${(m.tags || []).slice(0, 3).map(t => `<span class="tag">#${esc(t)}</span>`).join("")}</div>
       </div></a>`;
   }
+
+  /* ---------- Video: tautan YouTube, Vimeo, Google Drive, atau file video langsung ---------- */
+  function videoEmbed(u) {
+    u = safe(String(u || "").trim());
+    if (!u) return null;
+    let m;
+    if ((m = u.match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/|v\/)|youtube-nocookie\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/i)))
+      return { kind: "iframe", src: "https://www.youtube-nocookie.com/embed/" + m[1] + "?rel=0" };
+    if ((m = u.match(/^https?:\/\/(?:www\.)?vimeo\.com\/(?:[^?#]*\/)?(\d{6,12})(?:[/?#].*)?$/i)))
+      return { kind: "iframe", src: "https://player.vimeo.com/video/" + m[1] };
+    if ((m = u.match(/^https?:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)/i)))
+      return { kind: "iframe", src: "https://drive.google.com/file/d/" + m[1] + "/preview" };
+    if (/\.(mp4|webm|mov|m4v|ogv)(\?.*)?$/i.test(u) || /\/storage\/v1\/object\/public\//.test(u)) return { kind: "file", src: u };
+    return { kind: "link", src: u };
+  }
+  const videoMime = src => /\.webm(\?|$)/i.test(src) ? "video/webm" : /\.mov(\?|$)/i.test(src) ? "video/quicktime" : "video/mp4";
 
   /* ---------- Jenis konten ---------- */
   const mediaTypes = () => (window.MEDIA_TYPES || []).slice();
   const typeLabel = id => (mediaTypes().find(t => t.id === id) || { label: id }).label;
 
   /* ---------- Papan Informasi KPLH (replika papan di lapangan) ---------- */
+  /* Tampilan papan untuk layar ponsel: tiap indikator menjadi satu blok (tabel asli sulit dibaca di layar sempit) */
+  function mlist(K, rows, info) {
+    const cell = (l, v) => `<div><small>${l}</small><b>${esc(v)}</b></div>`;
+    return `<div class="kplh-mlist">${rows.map(r => `<div class="kplh-mrow"><div class="kplh-mlabel">${esc(r.label)}</div><div class="kplh-mvals">${cell("OBJECTIVE", r.objective)}${cell("MTD", r.mtd)}${cell("YTD", r.ytd)}${cell("PTD", r.ptd)}</div></div>`).join("")}
+      ${info ? `<div class="kplh-minfo"><div class="kplh-mhead">SHE INFORMATION</div><div class="kplh-mbody">${info}</div></div>` : ""}</div>`;
+  }
   function kplhHTML(K) {
     const rows = Array.isArray(K.rows) ? K.rows : [];
     const n = Math.max(rows.length, 1);
@@ -132,12 +166,13 @@
         <colgroup><col style="width:41%"><col style="width:8.9%"><col style="width:10.7%"><col style="width:10.7%"><col style="width:13.4%"><col style="width:15.3%"></colgroup>
         <thead><tr><th scope="col">STATISTIC</th><th scope="col">OBJECTIVE</th><th scope="col">MTD</th><th scope="col">YTD</th><th scope="col">PTD</th><th scope="col">SHE INFORMATION</th></tr></thead>
         <tbody>${body}</tbody>
-      </table>`;
+      </table>
+      ${mlist(K, rows, info)}`;
   }
 
   function waLink() {
     const t = `Halo Admin ${C.name},\n\nMohon bantuannya terkait informasi berikut:\n\nNama :\nNRP :\nPerusahaan :\nPertanyaan :\n\nTerima kasih.\n\n> Dikirim melalui ${C.name}`;
-    return "https://wa.me/" + C.whatsapp + "?text=" + encodeURIComponent(t);
+    return "https://wa.me/" + String(C.whatsapp == null ? "" : C.whatsapp).replace(/\D/g, "") + "?text=" + encodeURIComponent(t);
   }
 
   /* ---------- Header, footer, tombol WhatsApp, dialog ---------- */
@@ -175,7 +210,7 @@
     if (h) {
       h.className = "top";
       h.innerHTML = `<div class="wrap">
-        <a class="brand" href="index.html" aria-label="${esc(C.name)}, ke beranda">
+        <a class="brand" href="index.html">
           <img class="brand-mark" src="assets/logo-192.png" width="40" height="40" alt="">
           <span class="brand-txt"><span>${esc(C.name)}</span><small>${esc(C.tagline)}</small></span>
         </a>
@@ -212,20 +247,23 @@
             <p>Portal informasi digital Safety, Health &amp; Environment ${esc(C.company)}.</p>
           </div>
           <div>
-            <h4>Menu</h4>
+            <h3>Menu</h3>
             <ul>${footerLinks().map(n => `<li><a href="${n.h}">${esc(n.t)}</a></li>`).join("")}</ul>
           </div>
           <div>
-            <h4>Hubungi kami</h4>
+            <h3>Hubungi kami</h3>
             <ul>
               <li>${esc(C.address)}${C.mapsUrl ? ` <a href="${esc(C.mapsUrl)}" target="_blank" rel="noopener">(peta)</a>` : ""}</li>
-              <li><a href="${waLink()}" target="_blank" rel="noopener">WhatsApp ${esc(C.whatsappLabel)}</a></li>
+              <li><a href="${esc(waLink())}" target="_blank" rel="noopener">WhatsApp ${esc(C.whatsappLabel)}</a></li>
               <li><a href="mailto:${esc(C.email)}">${esc(C.email)}</a></li>
               <li>${esc(C.hours)}</li>
             </ul>
           </div>
         </div>
-        <p class="copy">&copy; ${new Date().getFullYear()} ${esc(C.company)}. Hak cipta dilindungi.</p>
+        <div class="foot-bottom">
+          <p class="copy">&copy; ${new Date().getFullYear()} ${esc(C.company)}. Hak cipta dilindungi.</p>
+          ${C.credit ? `<p class="credit">${esc(C.credit)}</p>` : ""}
+        </div>
       </div>`;
     }
 
@@ -234,9 +272,13 @@
     wa.href = waLink();
     wa.target = "_blank";
     wa.rel = "noopener";
-    wa.setAttribute("aria-label", "Chat dengan admin lewat WhatsApp");
-    wa.innerHTML = icon(I.chat) + "<span>Chat Admin</span>";
-    document.body.appendChild(wa);
+    wa.setAttribute("aria-label", "Chat Admin lewat WhatsApp");
+    wa.innerHTML = waIcon + "<span>Chat Admin</span>";
+    const aside = document.createElement("aside");
+    aside.className = "wa-wrap";
+    aside.setAttribute("aria-label", "Bantuan");
+    aside.appendChild(wa);
+    document.body.appendChild(aside);
   }
 
   function buildDialog() {
@@ -246,17 +288,20 @@
     dlg.innerHTML = `<h3 id="dlg-t"></h3><p id="dlg-p"></p>
       <div class="row"><button class="btn" id="dlg-go" type="button"></button><button class="btn ghost" id="dlg-x" type="button">Tutup</button></div>`;
     document.body.appendChild(dlg);
-    $("#dlg-x").addEventListener("click", () => dlg.close());
-    $("#dlg-go").addEventListener("click", () => { dlg.close(); if (dlgAction) dlgAction(); });
-    dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+    $("#dlg-x").addEventListener("click", () => dlgClose(dlg));
+    $("#dlg-go").addEventListener("click", () => { dlgClose(dlg); if (dlgAction) dlgAction(); });
+    dlg.addEventListener("click", e => { if (e.target === dlg) dlgClose(dlg); });
   }
+  /* <dialog> baru didukung iOS 15.4 ke atas: untuk perangkat lama dipakai cadangan agar tidak error */
+  const dlgOpen = d => { if (typeof d.showModal === "function") d.showModal(); else { d.classList.add("polyfill"); d.setAttribute("open", ""); } };
+  const dlgClose = d => { if (typeof d.close === "function") d.close(); else d.removeAttribute("open"); };
   let dlgAction = null;
   function openDialog(title, text, btn, action) {
     $("#dlg-t").textContent = title;
     $("#dlg-p").textContent = text;
     $("#dlg-go").textContent = btn || "Tutup";
     dlgAction = action || null;
-    $("#dlg").showModal();
+    dlgOpen($("#dlg"));
   }
   function setNavCurrent(k) {
     navCurrent = k;
@@ -348,6 +393,6 @@
     return window.AUTH;
   })();
 
-  window.SH = { $, $$, esc, I, icon, fmtDate, pageName, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
+  window.SH = { $, $$, esc, I, icon, iconOf, waIcon, videoEmbed, videoMime, dlgOpen, dlgClose, fmtDate, pageName, safe, groupList, groupByName, allGroups, serviceCardHTML, groupTabsHTML, tx, mediaTypes, typeLabel, kplhHTML, CAT_META, catTone, cover, cardHTML, waLink,
     openDialog, openService, ensureAccess, setNavCurrent, spy, flashHash, loginUrl };
 })();

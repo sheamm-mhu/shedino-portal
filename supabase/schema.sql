@@ -149,6 +149,7 @@ create table if not exists public.media_posts (
   tags        text[] not null default '{}',
   image       text not null default '',
   file_url    text not null default '',
+  video_url   text not null default '',
   body        jsonb not null default '[]'::jsonb,
   published   boolean not null default true,
   created_at  timestamptz not null default now(),
@@ -158,6 +159,7 @@ create table if not exists public.media_posts (
 -- Untuk project yang sudah memakai versi sebelumnya:
 -- jenis konten tidak lagi dibatasi (Kabar, Edukasi, Hari Besar, Buletin, Kampanye, dan seterusnya)
 alter table public.media_posts add column if not exists file_url text not null default '';
+alter table public.media_posts add column if not exists video_url text not null default '';
 alter table public.media_posts drop constraint if exists media_posts_tab_check;
 
 -- Pustaka dokumen
@@ -275,13 +277,14 @@ create policy "shedino ubah setelan" on public.site_settings for all to authenti
 -- Hanya admin yang boleh mengunggah, mengganti, dan menghapus.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
-  'site-media', 'site-media', true, 10485760,
+  'site-media', 'site-media', true, 52428800,
   array[
     'image/jpeg','image/png','image/webp','image/gif',
     'application/pdf',
     'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'video/mp4','video/webm','video/quicktime'
   ]
 )
 on conflict (id) do update

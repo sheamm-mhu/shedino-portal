@@ -16,6 +16,7 @@ window.CONFIG = {
   whatsapp: "6281234567890",         // format internasional, tanpa + dan tanpa 0 di depan
   whatsappLabel: "+62 812-3456-7890",
   hours: "Senin sampai Jumat, 08.00 - 17.00 WIB",
+  credit: "Developed By YogaKhrsma",   // tulisan kecil di bawah footer (kosongkan untuk menyembunyikan)
 
   /* Teks halaman. Gunakan {nama}, {tagline}, dan {perusahaan} untuk menyisipkan nilai di atas. */
   heroImage: "",        // foto latar bagian atas beranda (diunggah lewat Admin > Pengaturan)
@@ -355,7 +356,7 @@ window.DOCS = [
 
 /* ---------- 7. FAQ ---------- */
 window.FAQ = [
-  { q:"Apa itu SHEDINO?", a:"SHEDINO (Digital Information SHE) adalah portal digital Safety, Health & Environment. Portal ini menyatukan layanan, prosedur, kabar, edukasi, dan data kinerja SHE dalam satu tempat." },
+  { q:"Apa itu SHEDINO?", a:"SHEDINO (SHE Digital Information) adalah portal digital Safety, Health & Environment. Portal ini menyatukan layanan, prosedur, kabar, edukasi, dan data kinerja SHE dalam satu tempat." },
   { q:"Siapa saja yang dapat menggunakan SHEDINO?", a:"Siapa saja dapat membuka informasi umum seperti kabar, edukasi, dan sebagian layanan. Layanan dan data tertentu hanya dapat dibuka oleh akun yang sudah disetujui admin sesuai perannya." },
   { q:"Bagaimana cara mendapatkan akun?", a:"Klik Masuk lalu Daftar, isi data Anda dengan email kantor. Akun aktif setelah disetujui admin SHE." },
   { q:"Apakah status pengajuan di portal sesuai kondisi sebenarnya?", a:"Ya. Untuk layanan yang sudah terhubung, status diperbarui langsung oleh admin atau penanggung jawab layanan, sehingga dapat dijadikan acuan utama." },

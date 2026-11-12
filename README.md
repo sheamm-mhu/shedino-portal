@@ -1,4 +1,4 @@
-# SHEDINO - Digital Information SHE
+# SHEDINO - SHE Digital Information
 
 Portal informasi digital Safety, Health & Environment. Situs statis (HTML/CSS/JS) tanpa build step, siap di-deploy ke Vercel. Akun dan statistik memakai Supabase.
 
@@ -27,12 +27,12 @@ Portal informasi digital Safety, Health & Environment. Situs statis (HTML/CSS/JS
 ## Mengubah konten lewat panel Admin (disarankan)
 Masuk sebagai admin, klik **Admin**, lalu pilih tab:
 - **Papan KPLH**: papan informasi di beranda yang meniru papan di lapangan (bar hijau, kotak kuning Bulan dan Tahun, logo, tabel STATISTIC, OBJECTIVE, MTD, YTD, PTD, dan kolom SHE INFORMATION). Ubah judul, periode, dan semua angka; tambah, hapus, atau pindahkan baris; isi kolom SHE INFORMATION dengan teks atau gambar. Pengunjung dapat mencetak papan dari tombol **Cetak papan**.
-- **Kabar & Media**: tambah, edit, hapus artikel (Kabar SHE, Edukasi, Hari Besar, Buletin, Kampanye, atau jenis lain yang Anda tambah di Pengaturan). Artikel bisa diberi lampiran PDF untuk diunduh, misalnya file buletin. Foto sampul diunggah langsung (otomatis dikecilkan), isi artikel disusun dari paragraf dan subjudul.
+- **Kabar & Media** (artikel dapat memuat video: unggah file hingga 50 MB atau tempel tautan YouTube, Vimeo, Google Drive): tambah, edit, hapus artikel (Kabar SHE, Edukasi, Hari Besar, Buletin, Kampanye, atau jenis lain yang Anda tambah di Pengaturan). Artikel bisa diberi lampiran PDF untuk diunduh, misalnya file buletin. Foto sampul diunggah langsung (otomatis dikecilkan), isi artikel disusun dari paragraf dan subjudul.
 - **Tab Layanan**: tab pil di atas kartu layanan. Tambah, ganti nama, atur ikon, warna, dan urutan. Jika kolom **Tautan tab** diisi, tab itu menjadi tautan ke halaman lain (bukan penyaring).
 - **Layanan**: kartu layanan dengan nama, tab, ikon, deskripsi, **tulisan tombol** (misalnya "Buka Layanan Visitor"), **tautan tombol**, hak akses (Perlu login atau Terbuka), tampil di beranda atau tidak, dan urutan.
 - **Dokumen**: unggah file PDF, Word, Excel, atau PowerPoint (maksimal 10 MB) agar tombol Unduh berfungsi.
 - **FAQ**: pertanyaan dan jawaban.
-- **Pengaturan**: nama perusahaan, alamat, email, WhatsApp, jam layanan, pengumuman tersemat, status sistem, foto tim, **teks halaman depan** (judul besar, kalimat pembuka, bagian Tentang, dan pilar), serta **daftar kategori artikel**. Di sini juga ada **Tampilan bagian atas beranda (hero)**: unggah foto latar, atur gelapnya lapisan di atas foto, dan pilih tata letak **Standar** atau **Terpusat** (judul di tengah, pencarian, dan kartu statistik transparan di atas foto).
+- **Pengaturan**: nama perusahaan, alamat, email, WhatsApp, jam layanan, tulisan kredit di bawah footer ("Developed By ..."), pengumuman tersemat, status sistem, foto tim, **teks halaman depan** (judul besar, kalimat pembuka, bagian Tentang, dan pilar), serta **daftar kategori artikel**. Di sini juga ada **Tampilan bagian atas beranda (hero)**: unggah foto latar, atur gelapnya lapisan di atas foto, dan pilih tata letak **Standar** atau **Terpusat** (judul di tengah, pencarian, dan kartu statistik transparan di atas foto).
 - **Statistik SHE** dan **Akun** seperti sebelumnya.
 
 Perubahan langsung tampil di situs tanpa deploy ulang. Pertama kali, klik **Impor data contoh** pada tab yang masih kosong agar isi contoh dari `data.js` tersalin ke database dan bisa Anda edit.
@@ -53,6 +53,15 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 1. Unggah seluruh isi folder ini ke repository GitHub.
 2. Di vercel.com pilih Add New > Project, impor repository, Framework Preset: Other, lalu Deploy.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
+
+## Ramah ponsel (iOS dan Android)
+- Tampilan menyesuaikan lebar layar dari 320 piksel (ponsel kecil) sampai desktop, termasuk layar mendatar dan tablet.
+- Mendukung poni dan bilah sistem (area aman iPhone dan Android), tombol dan tautan berukuran minimal 44 piksel, dan kolom isian 16 piksel agar iPhone tidak memperbesar layar sendiri.
+- Papan KPLH tampil sebagai daftar per indikator di ponsel, dan sebagai tabel replika Excel di layar lebar dan saat dicetak.
+- Pustaka dokumen tampil sebagai kartu di ponsel.
+- Dapat ditambahkan ke layar utama sebagai aplikasi (manifest.webmanifest). Cara memasang:
+  - **iPhone/iPad (Safari)**: buka situs, ketuk ikon Bagikan, pilih **Tambahkan ke Layar Utama**.
+  - **Android (Chrome)**: buka situs, ketuk titik tiga di kanan atas, pilih **Instal aplikasi** atau **Tambahkan ke layar utama**.
 
 ## Akun dan statistik
 Ikuti `PANDUAN-AKUN.md`. Tanpa itu situs tetap tampil normal, tetapi tombol Masuk dan statistik menampilkan pesan belum dikonfigurasi.

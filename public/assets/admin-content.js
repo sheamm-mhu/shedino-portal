@@ -6,6 +6,8 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const BUCKET = "site-media";
+  const dlgOpen = d => { if (typeof d.showModal === "function") d.showModal(); else { d.classList.add("polyfill"); d.setAttribute("open", ""); } };
+  const dlgClose = d => { if (typeof d.close === "function") d.close(); else d.removeAttribute("open"); };
   const today = () => new Date().toISOString().slice(0, 10);
   const fmtD = iso => iso ? new Date(String(iso).slice(0, 10) + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "-";
   const slugify = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -42,8 +44,12 @@
     xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ppt: "application/vnd.ms-powerpoint",
     pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif"
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+    mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime"
   };
+  const MAX_VIDEO = 50 * 1024 * 1024;
+  const VIDEO_EXT = ["mp4", "m4v", "webm", "mov"];
+  const mb = n => (n / 1048576).toFixed(1).replace(".", ",") + " MB";
   const extOf = name => (String(name).split(".").pop() || "").toLowerCase();
 
   async function compressImage(file, maxW) {
@@ -73,6 +79,36 @@
     return Auth.client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
 
+  /* Unggah video dengan bilah kemajuan (XMLHttpRequest), format sama dengan pustaka storage */
+  function xhrUpload(path, blob, type, onProgress) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const { data } = await Auth.client.auth.getSession();
+        const token = data.session && data.session.access_token;
+        if (!token) throw new Error("Sesi login berakhir. Masuk ulang lalu coba lagi.");
+        const fd = new FormData();
+        fd.append("cacheControl", "31536000");
+        fd.append("", blob.type === type ? blob : new Blob([blob], { type }));
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${Auth.url}/storage/v1/object/${BUCKET}/${path}`);
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+        xhr.setRequestHeader("apikey", Auth.key);
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100))); };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) { onProgress(100); resolve(); return; }
+          let msg = "";
+          try { msg = JSON.parse(xhr.responseText).message || ""; } catch (e) { /* abaikan */ }
+          if (!msg) msg = xhr.status === 413 ? "The object exceeded the maximum allowed size" : xhr.status === 401 || xhr.status === 403 ? "new row violates row-level security policy" : "HTTP " + xhr.status;
+          const err = new Error(msg); err.statusCode = String(xhr.status); reject(err);
+        };
+        xhr.onerror = () => reject(new Error("Gagal terhubung ke server. Periksa koneksi internet Anda, lalu coba lagi."));
+        xhr.onabort = () => reject(new Error("Unggahan dibatalkan."));
+        xhr.send(fd);
+      } catch (e) { reject(e); }
+    });
+  }
+
   /* ---------- Definisi koleksi ---------- */
   const ICONS = [["idcard", "Kartu identitas"], ["truck", "Kendaraan"], ["helmet", "Helm (APD)"], ["clip", "Papan izin"], ["alert", "Peringatan"], ["stop", "Berhenti"], ["sign", "Rambu"], ["flag", "Bendera"], ["search", "Pencarian"], ["book", "Buku"], ["news", "Berita"], ["shield", "Perisai"], ["file", "Dokumen"], ["chart", "Grafik"], ["pulse", "Denyut"], ["monitor", "Monitor"], ["users", "Orang"]];
   const TONE_OPTS = [["blue", "Biru"], ["teal", "Teal"], ["amber", "Oranye"], ["red", "Merah"], ["gray", "Abu-abu"]];
@@ -88,13 +124,14 @@
         { k: "category", label: "Kategori", type: "select", opts: () => CATS().map(c => [c, c]) },
         { k: "excerpt", label: "Ringkasan", type: "textarea", help: "Satu atau dua kalimat yang tampil di kartu." },
         { k: "image", label: "Foto sampul", type: "image", folder: "artikel", help: "Boleh dikosongkan. Situs akan membuat sampul berwarna otomatis." },
+        { k: "video_url", label: "Video (opsional)", type: "video", folder: "video", help: "Unggah file video (maksimal 50 MB, format MP4 disarankan) atau tempel tautan YouTube, Vimeo, atau Google Drive. Untuk video besar atau yang ditonton banyak orang, tautan YouTube lebih hemat kuota." },
         { k: "file_url", label: "Lampiran (opsional)", type: "file", folder: "lampiran", help: "PDF buletin atau materi kampanye yang dapat diunduh pembaca. Maksimal 10 MB." },
         { k: "body", label: "Isi artikel", type: "body" },
         { k: "tags", label: "Tagar", type: "tags", help: "Pisahkan dengan koma, tanpa tanda #. Contoh: SafetyFirst, APAR" },
         { k: "published", label: "Tayangkan di situs", type: "check" }
       ],
-      defaults: () => ({ tab: ((window.MEDIA_TYPES || [])[0] || { id: "kabar" }).id, pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", file_url: "", body: [], tags: [], published: true }),
-      fromDefault: m => ({ id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", file_url: m.fileUrl || "", body: m.body || [], published: true })
+      defaults: () => ({ tab: ((window.MEDIA_TYPES || [])[0] || { id: "kabar" }).id, pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", file_url: "", video_url: "", body: [], tags: [], published: true }),
+      fromDefault: m => ({ id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", file_url: m.fileUrl || "", video_url: m.videoUrl || "", body: m.body || [], published: true })
     },
     groups: {
       table: "site_groups", label: "Tab Layanan", one: "tab", pk: "id", order: ["sort_order", true], defKey: "GROUPS", idFrom: "name",
@@ -213,6 +250,38 @@
   }
 
   /* ---------- Formulir ---------- */
+  function videoPreviewHTML(u) {
+    u = String(u || "").trim();
+    if (!u) return "<span>Belum ada video</span>";
+    if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(u) || /\/storage\/v1\/object\/public\//.test(u)) return `<video src="${esc(u)}" controls muted playsinline preload="metadata"></video>`;
+    return `<span>Tautan video: ${esc(u)}</span>`;
+  }
+
+  function wireVideo(box) {
+    const up = $(".up", box), rm = $(".rm", box), urlin = $(".urlin", box), stEl = $(".upst", box), prev = $(".imgprev", box), prog = $(".vprog", box);
+    const refresh = () => { prev.innerHTML = videoPreviewHTML(urlin.value); };
+    urlin.addEventListener("change", refresh);
+    rm.addEventListener("click", () => { urlin.value = ""; up.value = ""; stEl.textContent = ""; prog.hidden = true; refresh(); });
+    up.addEventListener("change", async () => {
+      const file = up.files[0]; if (!file) return;
+      stEl.className = "upst"; prog.hidden = true;
+      try {
+        const ext = extOf(file.name);
+        if (!VIDEO_EXT.includes(ext)) throw new Error("Gunakan video berformat MP4 (disarankan), WebM, atau MOV.");
+        if (file.size > MAX_VIDEO) throw new Error(`Ukuran video ${mb(file.size)} melebihi batas ${mb(MAX_VIDEO)}. Kecilkan videonya, atau unggah ke YouTube atau Google Drive lalu tempel tautannya di kolom di bawah.`);
+        const type = MIME[ext];
+        const path = `${box.dataset.folder}/${Date.now().toString(36)}-${slugify(file.name.replace(/\.[^.]+$/, ""))}.${ext === "m4v" ? "mp4" : ext}`;
+        stEl.textContent = "Mengunggah 0%... jangan tutup halaman ini."; prog.hidden = false; prog.value = 0; up.disabled = true;
+        await xhrUpload(path, file, type, pct => { prog.value = pct; stEl.textContent = `Mengunggah ${pct}%... jangan tutup halaman ini.`; });
+        urlin.value = Auth.client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; refresh();
+        stEl.className = "upst ok"; stEl.textContent = "Berhasil diunggah (" + mb(file.size) + "). Klik Simpan untuk menerapkan.";
+      } catch (e) {
+        stEl.className = "upst err"; stEl.textContent = e && e.message && !e.statusCode && !e.error ? e.message : dbError(e);
+      }
+      prog.hidden = true; up.disabled = false; up.value = "";
+    });
+  }
+
   function fieldHTML(f, data) {
     const v = data[f.k];
     const help = f.help ? `<span class="fhelp">${esc(f.help)}</span>` : "";
@@ -231,11 +300,17 @@
       case "image": return `<div class="imgbox" data-k="${f.k}" data-folder="${f.folder}" data-kind="image">
           <strong>${esc(f.label)}</strong>
           <div class="imgprev">${v ? `<img src="${esc(v)}" alt="">` : "<span>Belum ada foto</span>"}</div>
-          <div class="imgctl"><input type="file" accept="image/*" class="up"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
+          <div class="imgctl"><input type="file" accept="image/*" class="up" aria-label="Pilih foto"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
           <label>Alamat gambar <input class="urlin" value="${esc(v)}" placeholder="Terisi otomatis setelah unggah"></label>${help}</div>`;
+      case "video": return `<div class="imgbox" data-k="${f.k}" data-folder="${f.folder}" data-kind="video">
+          <strong>${esc(f.label)}</strong>
+          <div class="imgprev">${videoPreviewHTML(v)}</div>
+          <div class="imgctl"><input type="file" accept="video/mp4,video/webm,video/quicktime,.mp4,.m4v,.webm,.mov" class="up" aria-label="Pilih file video"><button type="button" class="btn ghost sm rm">Hapus video</button><span class="upst" role="status"></span></div>
+          <progress class="vprog" max="100" value="0" hidden aria-label="Kemajuan unggah"></progress>
+          <label>Atau tempel tautan video <small>(YouTube, Vimeo, Google Drive)</small><input class="urlin" value="${esc(v)}" placeholder="https://www.youtube.com/watch?v=..."></label>${help}</div>`;
       case "file": return `<div class="imgbox" data-k="${f.k}" data-folder="${f.folder}" data-kind="file" data-fmtkey="${f.fmtKey || ""}">
           <strong>${esc(f.label)}</strong>
-          <div class="imgctl"><input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" class="up"><button type="button" class="btn ghost sm rm">Hapus file</button><span class="upst" role="status"></span></div>
+          <div class="imgctl"><input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" class="up" aria-label="Pilih file dokumen"><button type="button" class="btn ghost sm rm">Hapus file</button><span class="upst" role="status"></span></div>
           <label>Alamat file <input class="urlin" value="${esc(v)}" placeholder="Terisi otomatis setelah unggah"></label>${help}</div>`;
       case "body": return `<div class="bodyed" data-k="${f.k}"><strong>${esc(f.label)}</strong><div class="blks">${(v || []).map(blockHTML).join("")}</div>
           <div class="bodyctl"><button type="button" class="btn ghost sm addp">+ Paragraf</button><button type="button" class="btn ghost sm addh">+ Subjudul</button></div></div>`;
@@ -260,25 +335,26 @@
       <div class="msg" id="cmsg" role="alert"></div>
       <div class="fact"><div class="l"><button class="btn" type="submit" id="csave">Simpan</button><button class="btn ghost" type="button" id="ccancel">Batal</button></div>
       ${row ? '<button class="btn danger" type="button" id="cdel">Hapus</button>' : ""}</div>`;
-    $("#cdlg").showModal();
+    dlgOpen($("#cdlg"));
     wireForm();
   }
 
   function setMsg(type, text) { const el = $("#cmsg"); if (!el) return; el.className = "msg show " + type; el.textContent = text; }
 
   function wireForm() {
-    $("#ccancel").addEventListener("click", () => $("#cdlg").close());
+    $("#ccancel").addEventListener("click", () => dlgClose($("#cdlg")));
     const del = $("#cdel");
     if (del) del.addEventListener("click", async () => {
       const C = COLS[st.key];
       if (!confirm("Hapus " + C.one + " ini? Tindakan ini tidak dapat dibatalkan." + (C.deleteWarn ? "\n\n" + C.deleteWarn : ""))) return;
       const { error } = await Auth.client.from(C.table).delete().eq(C.pk, st.editing[C.pk]);
       if (error) { setMsg("err", dbError(error)); return; }
-      $("#cdlg").close(); toast(C.one[0].toUpperCase() + C.one.slice(1) + " dihapus."); await show(st.key);
+      dlgClose($("#cdlg")); toast(C.one[0].toUpperCase() + C.one.slice(1) + " dihapus."); await show(st.key);
     });
 
     // unggah foto / file
     $$("#cform .imgbox").forEach(box => {
+      if (box.dataset.kind === "video") { wireVideo(box); return; }
       const up = $(".up", box), rm = $(".rm", box), urlin = $(".urlin", box), stEl = $(".upst", box);
       const prev = $(".imgprev", box);
       const refreshPrev = () => { if (prev) prev.innerHTML = urlin.value ? `<img src="${esc(urlin.value)}" alt="" onerror="this.replaceWith(document.createTextNode('Foto tidak dapat ditampilkan'))">` : "<span>Belum ada foto</span>"; };
@@ -295,7 +371,7 @@
             url = await uploadTo(box.dataset.folder, r.blob, file.name.replace(/\.[^.]+$/, ""), r.ext, r.type);
           } else {
             const ext = extOf(file.name);
-            if (!MIME[ext] || ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) throw new Error("Gunakan file PDF, Word, Excel, atau PowerPoint.");
+            if (!MIME[ext] || ["jpg", "jpeg", "png", "webp", "gif", ...VIDEO_EXT].includes(ext)) throw new Error("Gunakan file PDF, Word, Excel, atau PowerPoint. Untuk video, gunakan kolom Video.");
             if (file.size > 10 * 1024 * 1024) throw new Error("Ukuran file maksimal 10 MB.");
             url = await uploadTo(box.dataset.folder, file, file.name.replace(/\.[^.]+$/, ""), ext, MIME[ext]);
             const fk = box.dataset.fmtkey, sel = fk && $(`#cform [data-k="${fk}"]`);
@@ -339,7 +415,7 @@
         case "check": out[f.k] = el.checked; break;
         case "number": out[f.k] = el.value === "" ? 0 : parseInt(el.value, 10) || 0; break;
         case "tags": out[f.k] = el.value.split(",").map(t => t.replace(/[#\s]+/g, "")).filter(Boolean); break;
-        case "image": case "file": out[f.k] = ($(".urlin", el).value || "").trim(); break;
+        case "image": case "file": case "video": out[f.k] = ($(".urlin", el).value || "").trim(); break;
         case "body": out[f.k] = $$(".blk", el).map(b => {
           const t = $("textarea,input", b).value.trim();
           return b.dataset.t === "h" ? (t ? { h: t } : null) : (t || null);
@@ -378,7 +454,7 @@
     }
     btn.disabled = false; btn.textContent = "Simpan";
     if (error) { setMsg("err", dbError(error)); return; }
-    $("#cdlg").close();
+    dlgClose($("#cdlg"));
     toast("Tersimpan. Perubahan langsung tampil di situs.");
     await show(st.key);
   }
@@ -386,7 +462,7 @@
   /* ---------- Pengaturan situs ---------- */
   const SET_FIELDS = [
     ["company", "Nama perusahaan"], ["address", "Alamat kantor"], ["mapsUrl", "Tautan peta (Google Maps, opsional)"],
-    ["email", "Email"], ["whatsapp", "Nomor WhatsApp (format 62812xxxxxxx, tanpa tanda plus)"], ["whatsappLabel", "Nomor WhatsApp yang ditampilkan"], ["hours", "Jam layanan"]
+    ["email", "Email"], ["whatsapp", "Nomor WhatsApp (format 62812xxxxxxx, tanpa tanda plus)"], ["whatsappLabel", "Nomor WhatsApp yang ditampilkan"], ["hours", "Jam layanan"], ["credit", "Tulisan kredit di bawah footer (kosongkan untuk menyembunyikan)"]
   ];
   const TEXT_KEYS = ["heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   function pillarRowHTML(p) {
@@ -404,7 +480,7 @@
     return `<div class="imgbox" data-k="${key}" data-folder="${folder}" data-kind="image" data-maxw="${maxW}">
       <strong>${esc(label)}</strong>
       <div class="imgprev">${value ? `<img src="${esc(value)}" alt="">` : "<span>Belum ada foto</span>"}</div>
-      <div class="imgctl"><input type="file" accept="image/*" class="up"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
+      <div class="imgctl"><input type="file" accept="image/*" class="up" aria-label="Pilih foto"><button type="button" class="btn ghost sm rm">Hapus foto</button><span class="upst" role="status"></span></div>
       <label>Alamat gambar <input class="urlin" value="${esc(value)}" placeholder="Terisi otomatis setelah unggah"></label>${help ? `<span class="fhelp">${esc(help)}</span>` : ""}</div>`;
   }
 
@@ -593,7 +669,7 @@
       const b = e.target.closest("[data-edit]"); if (!b) return;
       openForm(st.rows[+b.dataset.edit]);
     });
-    $("#cdlg").addEventListener("click", e => { if (e.target === $("#cdlg")) $("#cdlg").close(); });
+    $("#cdlg").addEventListener("click", e => { if (e.target === $("#cdlg")) dlgClose($("#cdlg")); });
   }
   document.addEventListener("DOMContentLoaded", init);
   if (document.readyState !== "loading") init();

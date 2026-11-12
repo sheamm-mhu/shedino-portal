@@ -72,6 +72,16 @@ Tab dan kartu layanan:
 - Jika nama tab diganti, layanan di tab itu ikut pindah otomatis. Jika tab dihapus, layanannya tampil sebagai kelompok tambahan sampai dipindahkan.
 - Di tab **Pengaturan** Anda juga mengubah teks halaman depan. Gunakan `{nama}`, `{tagline}`, dan `{perusahaan}` bila ingin nilai otomatis disisipkan.
 
+Video di artikel (Kabar, Edukasi, Hari Besar, Buletin, Kampanye):
+- Di tab **Kabar & Media**, pada formulir artikel ada kolom **Video (opsional)**. Ada dua cara:
+  1. **Unggah file video**: klik **Choose File**, pilih video MP4 (disarankan), WebM, atau MOV. Ukuran maksimal **50 MB**. Bilah kemajuan tampil selama mengunggah, jangan menutup halaman sampai muncul tulisan hijau Berhasil. Lalu klik **Simpan**.
+  2. **Tempel tautan**: YouTube, Vimeo, atau Google Drive (video dibuka lewat pratinjau Drive). Cara ini paling cocok untuk video panjang atau besar.
+- Jalankan ulang seluruh isi `supabase/schema.sql` agar penyimpanan menerima video (menambah jenis file video dan batas 50 MB).
+- Batas 50 MB mengikuti paket gratis Supabase (Project Settings, Storage). Kalau video lebih besar, kecilkan dulu (misalnya dengan HandBrake atau pengaturan resolusi di aplikasi kamera) atau unggah ke YouTube dengan mode **Tidak publik** lalu tempel tautannya.
+- Video dari iPhone berformat MOV/HEVC kadang tidak bisa diputar di Android. Agar aman di semua perangkat, rekam dengan pengaturan **Paling Kompatibel** di iPhone, atau ubah menjadi MP4 (H.264).
+- Paket gratis Supabase membatasi lalu lintas data sekitar 5 GB per bulan. Video yang sering ditonton banyak orang menghabiskan kuota dengan cepat, sehingga tautan YouTube lebih hemat.
+- Foto sampul artikel dipakai sebagai gambar awal (poster) pemutar. Kartu artikel yang memiliki video ditandai ikon putar dan tag Video.
+
 Papan Informasi KPLH:
 - Buka tab **Papan KPLH**. Ubah judul, bulan, tahun, dan angka pada tabel, lalu klik **Simpan papan**. Papan di beranda langsung diperbarui.
 - Gunakan **+ Tambah baris**, **Hapus**, dan tombol panah untuk mengatur baris. **Kembalikan ke isi contoh** mengisi ulang tabel dengan data bawaan (baru tersimpan setelah Simpan papan).
