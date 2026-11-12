@@ -7,7 +7,7 @@
 /* ---------- 1. Pengaturan umum ---------- */
 window.CONFIG = {
   name: "SHEDINO",
-  tagline: "Digital Information SHE",
+  tagline: "SHE Digital Information",
   company: "PT Nama Perusahaan",
   address: "Kantor SHE, Area Operasional (isi alamat lengkap Anda)",
   mapsUrl: "",                       // tautan Google Maps (opsional)
