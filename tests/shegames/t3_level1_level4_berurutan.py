@@ -99,4 +99,14 @@ chk('I5 kelulusan minggu lalu tidak membuka level minggu ini (peringkat bersifat
 S("update game_settings set sequential=false"); ok,_=P(p5,"select public.game_start(3)"); chk('I6 berurutan dimatikan: level mana pun langsung bisa dimainkan', ok)
 S("update game_settings set sequential=true, active_levels='{2,3}'"); ok,_=P(p5,"select public.game_start(2)"); ok2,e2=P(p3,"select public.game_start(1)")
 chk('I7 level nonaktif tidak bisa dimainkan; level pertama yang aktif (2) langsung terbuka', ok and not ok2 and 'tidak aktif' in e2, e2)
+# ===== level tanpa konten tidak menghalangi, departemen =====
+S("update game_settings set sequential=true, active_levels='{1,2,3,4}'"); S("delete from game_signs"); S("update game_layout set live_grid=null")
+ok,st=P(p3,"select public.game_my_status()"); L={l['level']:l for l in st['levels']}
+chk('I8 level 1 dan 2 belum punya konten: level 3 tetap terbuka (level tanpa konten tidak mengunci level berikutnya)', not L[1]['ready'] and not L[2]['ready'] and L[3]['unlocked'], L)
+chk('I9 status memuat profil (nama, departemen) dan tanggal hari ini', st['profile']['full_name']=='Dewi' and st['profile']['department']=='Produksi' and 'today' in st, st.get('profile'))
+ok,e=P(p3,"select public.game_set_department('Gudang')"); chk('I10 departemen di luar daftar admin ditolak', not ok and 'daftar' in e, e)
+ok,r=P(p3,"select public.game_set_department(' SHE ')"); chk('I11 pemain mengisi departemennya sendiri (dirapikan)', ok and S1("select department from profiles where id=%s",(p3,))=='SHE', r)
+S("update game_settings set departments='{}'"); ok,r=P(p3,"select public.game_set_department('Gudang Timur')"); chk('I12 bila admin belum membuat daftar, departemen bebas diisi', ok and S1("select department from profiles where id=%s",(p3,))=='Gudang Timur')
+ok,e=P(p3,"select public.game_set_department('  ')"); chk('I13 departemen kosong ditolak', not ok)
+
 print(f'TOTAL {OK} lulus, {BAD} gagal')

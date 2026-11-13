@@ -32,4 +32,5 @@ for lv,co,to,h,w,exp in cs:
     if abs(got-exp)>0.01: ok=False; print('   salah',(lv,co,to,h,w),got,exp)
 chk('C1 rumus skor 4 level: % benar, penalti bantuan/salah ketuk, minimum 0, maksimum 100 (12 kasus)', ok)
 chk('C2 pembulatan 2 desimal (7/15 = 46.67)', float(S1("select public.game_score(3,7,15)"))==46.67)
+chk('A6 daftar departemen awal terisi saat data awal dimasukkan', S1("select array_length(departments,1) from game_settings")==7)
 print(f'TOTAL {OK} lulus, {BAD} gagal')

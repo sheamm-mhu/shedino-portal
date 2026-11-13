@@ -45,4 +45,17 @@ ok,r=P(U['v'],"select * from public.game_leaderboard()"); chk('L15 peringkat han
 S("delete from game_attempts")
 for n in ('a','b','c'): att(n,3,75,30000)
 r=lb(); chk('L16 tiga pemain identik persis -> semua peringkat 1', [x[0] for x in r]==[1,1,1], order(r))
+# ===== bulanan =====
+S("delete from game_attempts"); S("update game_settings set pass_score=60, rank_basis='score', tiebreak='fast', active_levels='{1,2,3,4}'")
+def attm(u,level,score,dur,ts):
+    S("insert into game_attempts(user_id,level,week,status,finished_at,duration_ms,score,passed) values (%s,%s,public.game_week_start(%s::timestamptz),'finished',%s::timestamptz,%s,%s,true)",(U[u],level,ts,ts,dur,score))
+attm('a',3,90,1000,'2026-10-31 15:59:00+00')   # 31 Okt 23:59 WITA -> Oktober
+attm('b',3,80,1000,'2026-10-31 16:00:00+00')   # 1 Nov 00:00 WITA -> November
+attm('a',3,70,1000,'2026-11-20 03:00:00+00'); attm('a',2,60,1000,'2026-11-21 03:00:00+00'); attm('c',3,95,1000,'2026-11-05 03:00:00+00'); attm('c',3,85,1000,'2026-12-01 03:00:00+00')
+def lbm(month):
+    ok,r=P(U['v'],"select rank,full_name,total from public.game_leaderboard(null,null,false,%s::date)",(month,)); return r if ok else r
+r=lbm('2026-11-01'); chk('L16 bulanan November: skor terbaik per level di bulan itu (Citra 95; Andi 70+60=130; Bima 80 dari 1 Nov 00:00 WITA)', [(x[1],float(x[2])) for x in r]==[('Andi',130.0),('Citra',95.0),('Bima',80.0)], r)
+r=lbm('2026-10-01'); chk('L17 bulanan Oktober: hanya Andi (31 Okt 23:59 WITA); batas bulan memakai WITA, bukan UTC', [(x[1],float(x[2])) for x in r]==[('Andi',90.0)], r)
+r=lbm('2026-11-17'); chk('L18 tanggal mana pun dalam bulan dipakai sebagai bulannya (17 Nov = November)', [x[1] for x in r]==['Andi','Citra','Bima'], r)
+r=lbm('2026-12-01'); chk('L19 bulan Desember terpisah (Citra 85)', [(x[1],float(x[2])) for x in r]==[('Citra',85.0)], r)
 print(f'TOTAL {OK} lulus, {BAD} gagal')

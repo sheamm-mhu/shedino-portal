@@ -55,7 +55,7 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
 
 ## SHEGAMES (permainan K3) - sedang dibangun bertahap
-Tahap 1 (data, skor, peringkat di server) sudah ada di `supabase/games.sql`; penjelasannya di `supabase/GAMES-TAHAP1.md`. Belum ada tampilan; tahap berikutnya menambah level dan halamannya.
+Tahap 1 (data, skor, peringkat di server) ada di `supabase/games.sql` (`supabase/GAMES-TAHAP1.md`). Tahap 2 menambah halaman `shegames.html`: lobi, level 3 pilihan ganda, dan peringkat mingguan, bulanan, serta semua waktu (`supabase/GAMES-TAHAP2.md`).
 
 ## Bagikan artikel ke WhatsApp
 - Di halaman artikel ada tombol **Bagikan ke WhatsApp**. Di ponsel yang mendukung (Android Chrome, iPhone Safari), tombol ini mengirim **gambar sampul beserta keterangannya** (judul tebal, tanggal, kutipan, tagar, tautan), mirip kiriman di Saluran WhatsApp. Di perangkat lain, tombol membuka WhatsApp dengan teks keterangan dan tautan.

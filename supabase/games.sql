@@ -230,7 +230,8 @@ declare s public.game_settings; prev int;
 begin
   select * into s from public.game_settings where id = 1;
   if not s.sequential then return true; end if;
-  select max(l) into prev from unnest(s.active_levels) l where l < p_level;
+  -- level sebelumnya yang aktif DAN sudah punya konten; level tanpa konten tidak menghalangi
+  select max(l) into prev from unnest(s.active_levels) l where l < p_level and public.game_level_ready(l);
   if prev is null then return true; end if;
   return exists (select 1 from public.game_attempts where user_id = p_user and level = prev and week = p_week and status = 'finished' and passed);
 end $$;
@@ -338,7 +339,21 @@ begin
       'active_attempt', (select id from public.game_attempts where user_id = u and level = lv and status = 'active' limit 1)));
   end loop;
   return jsonb_build_object('week', wk, 'week_label', to_char(wk, 'IYYY-"W"IW'),
+    'today', (now() at time zone s.tz)::date,
+    'profile', (select jsonb_build_object('full_name', full_name, 'department', department) from public.profiles where id = u),
     'settings', public.game_settings_public(), 'levels', out);
+end $$;
+
+-- Pemain mengisi departemennya sendiri (akun lama belum punya departemen)
+create or replace function public.game_set_department(p_dept text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare u uuid := public.game_require_user(); s public.game_settings; d text := btrim(coalesce(p_dept, ''));
+begin
+  select * into s from public.game_settings where id = 1;
+  if length(d) not between 1 and 60 then raise exception 'Pilih atau isi departemen (maksimal 60 karakter).'; end if;
+  if coalesce(array_length(s.departments, 1), 0) > 0 and not (d = any(s.departments)) then raise exception 'Departemen tidak ada dalam daftar.'; end if;
+  update public.profiles set department = d where id = u;
+  return jsonb_build_object('department', d);
 end $$;
 
 -- =====================================================================
@@ -597,7 +612,8 @@ end $$;
 -- =====================================================================
 -- 13) Peringkat. Hanya skor LULUS yang dihitung (terbaik per level). Seri: level tertinggi / waktu.
 -- =====================================================================
-create or replace function public.game_leaderboard(p_week date default null, p_dept text default null, p_all boolean default false)
+drop function if exists public.game_leaderboard(date, text, boolean);
+create or replace function public.game_leaderboard(p_week date default null, p_dept text default null, p_all boolean default false, p_month date default null)
 returns table (rank int, user_id uuid, full_name text, department text, is_me boolean, passed_levels int, top_level int,
                s1 numeric, s2 numeric, s3 numeric, s4 numeric, total numeric, time_ms bigint)
 language plpgsql stable security definer set search_path = public as $$
@@ -611,7 +627,10 @@ begin
   with best as (
     select distinct on (a.user_id, a.level) a.user_id, a.level, a.score, a.duration_ms
     from public.game_attempts a
-    where a.status = 'finished' and a.passed and a.level = any(s.active_levels) and (p_all or a.week = wk)
+    where a.status = 'finished' and a.passed and a.level = any(s.active_levels)
+      and (p_all
+           or (p_month is not null and date_trunc('month', a.finished_at at time zone s.tz)::date = date_trunc('month', p_month)::date)
+           or (p_month is null and a.week = wk))
     order by a.user_id, a.level, a.score desc, a.duration_ms asc
   ), agg as (
     select b.user_id, count(*)::int as passed_levels, max(b.level)::int as top_level,
@@ -954,7 +973,9 @@ begin
     ('Untuk api yang berasal dari peralatan listrik, jenis APAR yang cocok adalah...', array['Air','CO2 atau serbuk kering','Busa','Pasir basah'], 1, 'CO2 dan serbuk kering tidak menghantarkan listrik. Air dan busa berbahaya pada api listrik.', true),
     ('Risiko merupakan...', array['Sumber bahaya itu sendiri','Gabungan kemungkinan dan keparahan dampak dari bahaya','Alat untuk mengurangi bahaya','Hasil investigasi insiden'], 1, 'Bahaya adalah sumbernya. Risiko adalah seberapa mungkin dan seberapa parah dampaknya.', true),
     ('Laporan insiden sebaiknya disampaikan...', array['Segera setelah kejadian','Menunggu akhir bulan','Hanya bila ada korban','Setelah masalah selesai'], 0, 'Laporan cepat membantu penanganan korban, pengamanan lokasi, dan pencegahan kejadian ulang.', true);
-  update public.game_settings set seeded = true where id = 1;
+  update public.game_settings set seeded = true,
+    departments = case when departments = '{}' then array['Produksi','Plant','Engineering','SCM-FAW','HCGA','SHE','Office'] else departments end
+  where id = 1;
 end $$;
 
 -- =====================================================================
@@ -970,7 +991,8 @@ begin
 end $$;
 grant execute on function
   public.game_my_status(), public.game_start(int), public.game_answer(uuid, int, int), public.game_hint(uuid, int, int),
-  public.game_tap(uuid, numeric, numeric), public.game_finish(uuid, jsonb), public.game_leaderboard(date, text, boolean),
+  public.game_tap(uuid, numeric, numeric), public.game_finish(uuid, jsonb), public.game_leaderboard(date, text, boolean, date),
+  public.game_set_department(text),
   public.game_settings_public(),
   public.game_admin_save_item(text, uuid, jsonb), public.game_admin_delete_item(text, uuid), public.game_admin_save_layout(jsonb),
   public.game_publish(), public.game_admin_reset_scores(text, uuid)

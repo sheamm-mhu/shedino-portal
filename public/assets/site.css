@@ -708,3 +708,13 @@ dialog.lb img{max-height:90vh;max-height:90dvh}
   .pt body.leaving main,.pt body.leaving footer{transition:none;transform:none}
 }
 @media print{.rv:not(.in){opacity:1!important}.rv.in{animation:none!important}}
+
+/* Menu header lebih rapat di layar menengah (901-1200px) agar 8 tautan tetap muat */
+@media (min-width:901px) and (max-width:1200px){
+  .nav{gap:0}
+  .nav a,.nav .dd-btn{padding-left:.55rem;padding-right:.55rem;font-size:.95rem}
+  .nav .login{margin-left:.35rem}
+  .brand small{display:none}
+}
+/* Tombol "Menu" hanya untuk layar <= 900px (juga di perangkat sentuh yang lebar) */
+@media (min-width:901px){.burger{display:none!important}}

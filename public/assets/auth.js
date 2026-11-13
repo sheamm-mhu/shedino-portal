@@ -88,7 +88,7 @@
 
   /* Hanya izinkan tujuan di dalam situs ini */
   function safeNext(value) {
-    const allowed = ["index.html", "admin.html", "layanan.html", "media.html", "/", "/admin", "/index.html", ""];
+    const allowed = ["index.html", "admin.html", "layanan.html", "media.html", "shegames.html", "/", "/admin", "/index.html", "/shegames", ""];
     return allowed.includes(value || "") ? (value || "index.html") : "index.html";
   }
 
