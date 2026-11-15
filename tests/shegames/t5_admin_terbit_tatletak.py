@@ -1,6 +1,7 @@
 import os
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'base.py'), encoding='utf-8').read())
 setup()
+S("update game_settings set active_levels='{1,2,3,4}'")
 adm=mkuser('adm@x','Admin','Kantor','admin'); p1=mkuser('p1@x','Budi','Produksi')
 def A(q,p=None): return P(adm,q,p)
 def save(kind,data,pid=None): return A("select public.game_admin_save_item(%s,%s,%s)",(kind,pid,json.dumps(data)))
@@ -114,6 +115,25 @@ S("update game_layout set live_grid=grid where id=1")
 S("delete from game_words where word='HELM'")
 chk('M24 tata letak tayang yang menunjuk kata yang sudah tidak ada: level 1 dinyatakan belum siap (bukan galat saat dimainkan)', S1("select public.game_level_ready(1)") is False)
 ok,e=P(p1,"select public.game_start(1)"); chk('M25 memulai level 1 yang tidak siap ditolak dengan pesan jelas', not ok and 'belum siap' in e, e)
+# ===== O. ganti semua, batalkan, ringkasan, peserta =====
+S("update game_settings set active_levels='{3}'"); S("delete from game_questions"); 
+for i in range(4): save('question',{'q':f'Q{i}','opts':['a','b'],'key':0})
+A("select public.game_publish()")
+ok,pn=A("select public.game_admin_pending()"); chk('O1 setelah terbit tidak ada perubahan tertunda', ok and pn['total']==0, pn)
+save('question',{'q':'Draf baru','opts':['a','b'],'key':1}); qx=S1("select id::text from game_questions where q='Q0'"); save('question',{'q':'Q0 diubah','opts':['a','b'],'key':0},qx)
+ok,pn=A("select public.game_admin_pending()"); chk('O2 ringkasan menghitung draf baru dan perubahan (2 soal)', ok and pn['questions']==2 and pn['total']==2, pn)
+ok,_=A("select public.game_admin_discard()"); chk('O3 batalkan perubahan: draf dibuang, perubahan tertunda dipulihkan, isi tayang utuh', ok and S1("select count(*) from game_questions")==4 and S1("select count(*) from game_questions where pending_op is not null or not live")==0 and S1("select q from game_questions where id=%s",(qx,))=='Q0')
+save('question',{'q':'Draf lama','opts':['a','b'],'key':1})
+ok,n=A("select public.game_admin_clear('question')"); chk('O4 ganti semua: 4 soal tayang ditandai hapus, draf lama dibuang; pemain masih memakai soal lama sampai terbit', ok and n==4 and S1("select count(*) from game_questions where pending_op='delete'")==4 and S1("select count(*) from game_questions where not live")==0 and S1("select public.game_level_ready(3)"))
+for i in range(3): save('question',{'q':f'Baru{i}','opts':['a','b','c'],'key':2})
+ok,r=A("select public.game_publish()"); chk('O5 setelah terbit hanya 3 soal baru yang tayang', ok and r['questions']==3 and sorted(x[0] for x in S("select q from game_questions"))==['Baru0','Baru1','Baru2'], r)
+A("select public.game_admin_clear('question')"); ok,e=A("select public.game_publish()"); chk('O6 ganti semua tanpa pengganti lalu terbit ditolak (minimal 3 soal)', not ok and 'minimal 3 soal' in e, e)
+A("select public.game_admin_discard()")
+ok,e=P(p1,"select public.game_admin_clear('question')"); ok2,e2=P(p1,"select public.game_admin_discard()"); ok3,e3=P(p1,"select * from public.game_admin_participants()"); ok4,e4=P(p1,"select public.game_admin_pending()")
+chk('O7 pemain biasa tidak bisa memanggil fungsi admin baru (4 fungsi)', not ok and not ok2 and not ok3 and not ok4, (e,e2,e3,e4))
+S("delete from game_attempts"); S("insert into game_attempts(user_id,level,week,status,finished_at,score,passed) values (%s,3,public.game_week_start(),'finished',now(),80,true),(%s,3,public.game_week_start(),'finished',now(),40,false)",(p1,p1))
+ok,rows=A("select full_name,employee_id,department,attempts,passed_levels,last_played is not null from public.game_admin_participants()")
+chk('O8 daftar peserta: nama, NIK, departemen, jumlah percobaan, level lulus, terakhir main', ok and ('Budi','NBudi','Produksi',2,1,True) in rows and any(r[0]=='Admin' and r[3]==0 for r in rows), rows)
 # ===== N. hapus skor =====
 S("delete from game_attempts")
 for u in (p1,adm):

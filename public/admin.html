@@ -35,7 +35,7 @@
 <main class="adm">
   <div class="wrap">
     <h1>Panel Admin</h1>
-    <p class="lead">Kelola akun karyawan, angka statistik, dan seluruh isi situs: artikel, layanan, dokumen, FAQ, dan foto.</p>
+    <p class="lead">Kelola akun karyawan, angka statistik, seluruh isi situs (artikel, layanan, dokumen, FAQ, foto), dan permainan SHEGAMES.</p>
 
     <div id="gate" class="warnbox" role="status">Memeriksa akses...</div>
 
@@ -48,6 +48,7 @@
       <button role="tab" data-tab="services" aria-selected="false" type="button">Layanan</button>
       <button role="tab" data-tab="docs" aria-selected="false" type="button">Dokumen</button>
       <button role="tab" data-tab="faq" aria-selected="false" type="button">FAQ</button>
+      <button role="tab" data-tab="games" aria-selected="false" type="button">SHEGAMES</button>
       <button role="tab" data-tab="set" aria-selected="false" type="button">Pengaturan</button>
     </div>
 
@@ -81,6 +82,7 @@
 
     <div id="settings-panel" class="hidden"></div>
     <div id="kplh-panel" class="hidden"></div>
+    <div id="games-panel" class="hidden"></div>
 
     <div id="app" class="hidden">
       <div class="stats" role="group" aria-label="Filter berdasarkan status">
@@ -117,6 +119,8 @@
 <script src="assets/auth.js"></script>
 <script src="assets/data.js"></script>
 <script src="assets/admin-content.js"></script>
+<script src="assets/games/games-parse.js"></script>
+<script src="assets/games/games-admin.js"></script>
 <script>
 (function(){
   const $ = s => document.querySelector(s);
@@ -211,9 +215,11 @@
     $("#content-panel").classList.toggle("hidden", !CONTENT_TABS.includes(which));
     $("#settings-panel").classList.toggle("hidden", which !== "set");
     $("#kplh-panel").classList.toggle("hidden", which !== "kplh");
+    $("#games-panel").classList.toggle("hidden", which !== "games");
     if(which === "stat") loadStats();
     else if(which === "set") AdminContent.showSettings();
     else if(which === "kplh") AdminContent.showKplh();
+    else if(which === "games") AdminGames.show();
     else if(CONTENT_TABS.includes(which)) AdminContent.show(which);
   }
   $("#atabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if(b) showTab(b.dataset.tab); });

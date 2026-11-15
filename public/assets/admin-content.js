@@ -628,6 +628,7 @@
         <label>Judul baris 2 (perusahaan dan lokasi)<input data-kk="title2" value="${esc(K.title2)}"></label>
         <div class="frow"><label>Bulan<input data-kk="bulan" value="${esc(K.bulan)}" placeholder="OKTOBER"></label><label>Tahun<input data-kk="tahun" value="${esc(K.tahun)}" placeholder="2026"></label></div>
         <label>Teks di bawah logo<input data-kk="logoText" value="${esc(K.logoText)}"></label>
+        <label>Gaya warna papan<select data-kk="theme"><option value="site"${K.theme === "excel" ? "" : " selected"}>Selaras warna situs (navy dan crimson)</option><option value="excel"${K.theme === "excel" ? " selected" : ""}>Seperti lembar Excel (hijau, kuning, oranye)</option></select></label>
         <h3>Tabel statistik</h3>
         <p class="fhelp">Nilai boleh berisi angka atau tanda minus (-). Baris dapat ditambah, dihapus, dan dipindah urutannya.</p>
         <div class="ktab" id="ktab"><div class="krow khead"><span>Uraian (STATISTIC)</span><span>OBJECTIVE</span><span>MTD</span><span>YTD</span><span>PTD</span><span></span></div><div id="krows">${K.rows.map(krowHTML).join("")}</div></div>
@@ -657,7 +658,7 @@
       const g = k => $(`[data-kk="${k}"]`, form).value.trim();
       const rows = $$("#krows .krow", form).map(r => ({ label: $(".kl", r).value.trim(), objective: $(".ko", r).value.trim(), mtd: $(".km", r).value.trim(), ytd: $(".ky", r).value.trim(), ptd: $(".kp", r).value.trim() }))
         .filter(r => r.label || r.objective || r.mtd || r.ytd || r.ptd);
-      const value = { title1: g("title1"), title2: g("title2"), bulan: g("bulan"), tahun: g("tahun"), logoText: g("logoText"), rows, infoText: g("infoText"), infoImage: $('.imgbox[data-k="infoImage"] .urlin', form).value.trim() };
+      const value = { title1: g("title1"), title2: g("title2"), bulan: g("bulan"), tahun: g("tahun"), logoText: g("logoText"), theme: g("theme") === "excel" ? "excel" : "site", rows, infoText: g("infoText"), infoImage: $('.imgbox[data-k="infoImage"] .urlin', form).value.trim() };
       const btn = $("#ksave"); btn.disabled = true; btn.textContent = "Menyimpan...";
       const { error: err } = await Auth.client.from("site_settings").upsert([{ key: "kplh", value, updated_at: new Date().toISOString() }], { onConflict: "key" });
       btn.disabled = false; btn.textContent = "Simpan papan";

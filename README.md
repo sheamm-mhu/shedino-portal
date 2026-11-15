@@ -55,7 +55,7 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 3. Setiap perubahan di GitHub otomatis dideploy ulang.
 
 ## SHEGAMES (permainan K3) - sedang dibangun bertahap
-Tahap 1 (data, skor, peringkat di server) ada di `supabase/games.sql` (`supabase/GAMES-TAHAP1.md`). Tahap 2 menambah halaman `shegames.html`: lobi, level 3 pilihan ganda, dan peringkat mingguan, bulanan, serta semua waktu (`supabase/GAMES-TAHAP2.md`).
+Tahap 1 (data, skor, peringkat di server) ada di `supabase/games.sql` (`supabase/GAMES-TAHAP1.md`). Tahap 2 menambah halaman `shegames.html`: lobi, level 3 pilihan ganda, dan peringkat mingguan, bulanan, serta semua waktu (`supabase/GAMES-TAHAP2.md`). Tahap 3 menambah tab **SHEGAMES** di panel Admin: pengaturan, bank soal dengan impor dokumen (.docx, .xlsx, .csv, .pdf, .txt), peserta dan skor (`supabase/GAMES-TAHAP3.md`).
 
 ## Bagikan artikel ke WhatsApp
 - Di halaman artikel ada tombol **Bagikan ke WhatsApp**. Di ponsel yang mendukung (Android Chrome, iPhone Safari), tombol ini mengirim **gambar sampul beserta keterangannya** (judul tebal, tanggal, kutipan, tagar, tautan), mirip kiriman di Saluran WhatsApp. Di perangkat lain, tombol membuka WhatsApp dengan teks keterangan dan tautan.
@@ -68,6 +68,10 @@ Tahap 1 (data, skor, peringkat di server) ada di `supabase/games.sql` (`supabase
 ## Statistik SHE dan animasi
 - Kartu Statistik SHE berada di area foto (hero) di atas beranda, tepat di bawah kolom pencarian. Angkanya tetap hanya terlihat oleh akun yang sudah disetujui.
 - Elemen muncul dengan animasi setiap kali masuk layar saat digulir (diputar ulang saat digulir kembali). Saat berpindah halaman, isi halaman memudar keluar lalu halaman tujuan masuk dengan animasi. Semua animasi otomatis mati bila pengguna mengaktifkan "kurangi gerakan" di perangkatnya.
+
+## Keselarasan warna dan layanan
+- Papan KPLH memakai palet situs (navy, crimson, abu kebiruan). Gaya lembar Excel (hijau, kuning, oranye) tetap bisa dipilih di Admin, tab Papan KPLH, kolom **Gaya warna papan**.
+- Bagian Layanan di beranda langsung menampilkan semua layanan, dikelompokkan per tab. Tab hanya menyaring.
 
 ## Tampilan Kabar, Edukasi, dan Hari Besar/Buletin/Kampanye di beranda
 - Semua artikel ditampilkan dalam satu baris yang bisa digeser ke samping: tombol panah (kiri dan kanan), usap di layar sentuh, trackpad atau Shift+roda mouse, seret dengan mouse, atau tombol panah di keyboard. Tidak perlu membuka "Lihat semua".

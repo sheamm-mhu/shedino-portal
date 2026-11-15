@@ -1,6 +1,7 @@
 import os
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'base.py'), encoding='utf-8').read())
 setup()
+S("update game_settings set active_levels='{1,2,3,4}'")
 adm=mkuser('adm@x','Admin','Kantor','admin')
 U={n:mkuser(f'{n}@x',nm,d) for n,nm,d in [('a','Andi','Produksi'),('b','Bima','Plant'),('e','Eka','Plant'),('c','Citra','Produksi'),('d','Dodi','Plant'),('f','Fitri','Produksi'),('h','Hana','Plant'),('v','Viewer','Kantor')]}
 W=S1("select public.game_week_start()"); WP=S1("select public.game_week_start()-7")

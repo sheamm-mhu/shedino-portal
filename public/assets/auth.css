@@ -213,3 +213,45 @@ dialog.polyfill[open]{position:fixed;left:50%;top:50%;transform:translate(-50%,-
 main{animation:pageIn .45s cubic-bezier(.2,.7,.2,1) backwards}
 @keyframes pageIn{from{opacity:0;transform:translateY(10px)}}
 @media (prefers-reduced-motion:reduce){main{animation:none}}
+
+/* ===== SHEGAMES di panel admin ===== */
+.ga-pub{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.8rem;padding-bottom:1rem;border-bottom:1px solid var(--line);margin-bottom:1rem}
+.ga-pub strong{font-size:1.2rem;display:block}
+.ga-pend{display:block;color:var(--slate);font-size:.95rem}
+.ga-pend.has{color:#B45309;font-weight:600}
+.ga-pubact{display:flex;flex-wrap:wrap;gap:.5rem}
+.ga-tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0}
+.ga-tabs button{min-height:44px;padding:.5rem 1rem;border:1.5px solid var(--line);border-radius:999px;background:#fff;font:inherit;font-weight:600;color:var(--slate);cursor:pointer}
+.ga-tabs button[aria-selected="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.ga-form h3,.ga-imp-head h3{margin:1.4rem 0 .6rem;font-size:1.05rem}
+.ga-form h3:first-child{margin-top:.2rem}
+.ga-form label,.ga-fields label{display:block;margin-bottom:.8rem;font-weight:600}
+.ga-form input:not([type=checkbox]),.ga-form select,.ga-form textarea,.ga-fields textarea,.ga-fields input.io,.ga-tools input[type=search]{display:block;width:100%;margin-top:.3rem;padding:.6rem .75rem;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:400;box-sizing:border-box}
+.ga-levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.2rem .8rem}
+.ga-levels em{color:var(--slate);font-weight:400}
+.ga-foot{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem;margin-top:1.2rem}
+.ga-tools{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.6rem}
+.ga-tools input[type=search]{flex:1;min-width:200px;margin-top:0}
+.ga-file{cursor:pointer;position:relative}
+.ga-file:focus-within{outline:3px solid var(--crimson);outline-offset:2px}
+.ga-scroll{overflow-x:auto}
+.ga-scroll .tbl{min-width:640px}
+.ga-opts{display:flex;flex-wrap:wrap;gap:.25rem .9rem;margin-top:.3rem;color:var(--slate);font-size:.92rem}
+.ga-opts .k{color:#115E59;font-weight:700}
+tr.ga-del td:first-child{text-decoration:line-through;color:var(--slate)}
+.ga-optlist{display:grid;gap:.45rem;margin-bottom:.5rem}
+.ga-opt{display:grid;grid-template-columns:auto 1fr auto;gap:.5rem;align-items:center}
+.ga-opt input.io{margin-top:0}
+.ga-key{display:inline-flex!important;align-items:center;gap:.35rem;margin:0!important;min-width:56px;min-height:44px;cursor:pointer}
+.ga-key input{width:22px;height:22px}
+.ga-item{border:1.5px solid var(--line);border-radius:14px;padding:1rem;margin-bottom:.9rem;background:#fff}
+.ga-item.bad{border-color:#FECDD3;background:#FFF8F9}
+.ga-item-head{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.7rem}
+.ga-item-head .ga-probs{display:flex;flex-wrap:wrap;gap:.3rem;flex:1}
+.ga-mode{border:1.5px solid var(--line);border-radius:12px;padding:.6rem 1rem;margin:.8rem 0}
+.ga-mode legend{font-weight:600;padding:0 .4rem}
+#ga-dlg form{padding:1.2rem;display:block;overflow:auto}
+
+.ga{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.4rem;max-width:none}
+.ga-form{max-width:860px}
+@media (max-width:600px){.ga{padding:1rem}.ga-pubact{width:100%}.ga-pubact .btn{flex:1}}

@@ -32,7 +32,7 @@ with sync_playwright() as p:
     wk = Q1("select public.game_week_start()"); iy, iw, _ = wk.isocalendar()
     chk('C1 lobi: sapaan nama depan, 4 kartu level dengan bentuk rambu, label minggu ISO di sidebar', 'Halo, Budi' in pg.inner_text('.g-hero') and pg.locator('.g-level').count() == 4 and pg.inner_text('#g-week-l') == f'Minggu {iw}, {iy}', pg.inner_text('#g-week-l'))
     lv = pg.evaluate("[...document.querySelectorAll('.g-level')].map(c=>[c.querySelector('.g-lv').textContent,c.querySelector('.g-pill').textContent,!!c.querySelector('a.g-btn')])")
-    chk('C2 level 3 bisa dimainkan; level 1, 2, 4 "Belum tersedia" (belum ada konten)', lv == [['Level 1', 'Belum tersedia', False], ['Level 2', 'Belum tersedia', False], ['Level 3', 'Percobaan 0', True], ['Level 4', 'Belum tersedia', False]], lv)
+    chk('C2 level 3 bisa dimainkan; level 1, 2, 4 "Segera hadir"', lv == [['Level 1', 'Segera hadir', False], ['Level 2', 'Segera hadir', False], ['Level 3', 'Percobaan 0', True], ['Level 4', 'Segera hadir', False]], lv)
     chk('C3 peringkat minggu ini di sapaan: belum ada (-)', '-' in pg.inner_text('.g-stat:nth-child(3)'))
     pg.screenshot(path='/tmp/v14_lobi.png')
     # ---- D. bermain level 3

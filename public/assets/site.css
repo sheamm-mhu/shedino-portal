@@ -718,3 +718,37 @@ dialog.lb img{max-height:90vh;max-height:90dvh}
 }
 /* Tombol "Menu" hanya untuk layar <= 900px (juga di perangkat sentuh yang lebar) */
 @media (min-width:901px){.burger{display:none!important}}
+
+/* =====================================================================
+   KESELARASAN WARNA (v13): papan KPLH memakai palet situs. Gaya Excel (kelas kplh--excel) tetap tersedia.
+   ===================================================================== */
+.kplh:not(.kplh--excel){border:1px solid var(--ink);border-radius:14px;overflow:hidden;font-family:var(--body);color:var(--ink)}
+.kplh:not(.kplh--excel) .kplh-bar{background:var(--ink);border-bottom:1px solid rgba(255,255,255,.14);font-family:var(--display)}
+.kplh:not(.kplh--excel) .kplh-bar+.kplh-bar{background:#1E293B;border-bottom:3px solid var(--crimson)}
+.kplh:not(.kplh--excel) .kplh-period div{background:#F1F5F9;border:1px solid #CBD5E1;border-left:4px solid var(--crimson);color:var(--ink)}
+.kplh:not(.kplh--excel) .kplh-table th,.kplh:not(.kplh--excel) .kplh-table td{border-color:#CBD5E1}
+.kplh:not(.kplh--excel) .kplh-table thead th{background:#1E293B;color:#fff;border-top:0}
+.kplh:not(.kplh--excel) .kplh-table tbody th{background:#F1F5F9;color:var(--ink)}
+.kplh:not(.kplh--excel) .kplh-table tbody tr:nth-child(even) td:not(.kplh-info){background:#FAFBFD}
+.kplh-scroll{border-radius:14px}
+@media (max-width:760px){
+  .kplh:not(.kplh--excel) .kplh-bar,.kplh:not(.kplh--excel) .kplh-mhead{background:var(--ink)}
+  .kplh:not(.kplh--excel) .kplh-bar+.kplh-bar{background:#1E293B}
+  .kplh:not(.kplh--excel) .kplh-mvals small{background:#1E293B}
+  .kplh:not(.kplh--excel) .kplh-mlabel{background:#F1F5F9}
+  .kplh:not(.kplh--excel) .kplh-mlist{border-top-color:#CBD5E1}
+  .kplh:not(.kplh--excel) .kplh-mrow{border-bottom-color:#CBD5E1}
+  .kplh:not(.kplh--excel) .kplh-mvals>div{border-left-color:#CBD5E1}
+}
+@media print{.kplh:not(.kplh--excel){border-radius:0}}
+
+/* Layanan: semua tampil, dikelompokkan */
+.svc-block+.svc-block{margin-top:2rem}
+.svc-group{display:flex;align-items:center;gap:.6rem;font-family:var(--display);font-size:1.15rem;margin:0 0 .9rem}
+.svc-group span{font-family:var(--body);font-size:.85rem;font-weight:600;color:var(--slate);background:#E2E8F0;border-radius:999px;padding:.1rem .6rem}
+.kplh:not(.kplh--excel) .kplh-table th,.kplh:not(.kplh--excel) .kplh-table td{font-size:1.38cqw}
+.kplh:not(.kplh--excel) .kplh-table thead th{font-size:1.3cqw;overflow-wrap:normal;letter-spacing:.02em}
+.kplh:not(.kplh--excel) .kplh-table td:not(.kplh-info){white-space:nowrap}
+@supports not (font-size:1cqw){
+  .kplh:not(.kplh--excel) .kplh-table th,.kplh:not(.kplh--excel) .kplh-table td{font-size:clamp(9px,1.3vw,16px)}
+}

@@ -31,6 +31,9 @@ $$;
 
 -- 3) Setiap akun baru otomatis dibuatkan profil berstatus "pending" dan peran "karyawan".
 --    Peran dan status SENGAJA tidak diambil dari input pengguna.
+-- Departemen (dipakai SHEGAMES); ditambahkan di sini agar urutan menjalankan schema.sql dan games.sql tidak berpengaruh
+alter table public.profiles add column if not exists department text not null default '';
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -38,12 +41,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, full_name, employee_id)
+  insert into public.profiles (id, email, full_name, employee_id, department)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
-    coalesce(new.raw_user_meta_data ->> 'employee_id', '')
+    coalesce(new.raw_user_meta_data ->> 'employee_id', ''),
+    coalesce(new.raw_user_meta_data ->> 'department', '')
   )
   on conflict (id) do nothing;
   return new;

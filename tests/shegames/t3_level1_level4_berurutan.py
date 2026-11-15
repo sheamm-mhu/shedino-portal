@@ -1,6 +1,7 @@
 import os
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'base.py'), encoding='utf-8').read())
 setup()
+S("update game_settings set active_levels='{1,2,3,4}'")
 adm = mkuser('adm@x','Admin','Kantor','admin'); p1 = mkuser('p1@x','Budi','Produksi'); p2 = mkuser('p2@x','Sari','Plant'); p3 = mkuser('p3@x','Dewi','Produksi'); p4=mkuser('p4@x','Rudi','Plant'); p5=mkuser('p5@x','Tono','Plant')
 S("update game_settings set sequential=false")
 # ===== G. level 1 teka-teki silang =====

@@ -16,3 +16,8 @@ Peringatan: uji ini TIDAK menyentuh Supabase Anda. Struktur Supabase (tabel `aut
 Hanya layanan login yang diganti penerbit token sederhana. Kebutuhan: `pip install playwright pgserver "psycopg[binary]"`,
 `playwright install chromium`, berkas biner PostgREST 12 (atur `POSTGREST_BIN`), `axe.min.js` dari paket npm axe-core (atur `AXE_JS`),
 dan server statis untuk folder `public` di port 8769 (misalnya `python -m http.server 8769` dari folder `public`).
+
+## Uji pembaca dokumen
+
+`node tests/shegames/parse_test.js` menguji pembaca .docx, .xlsx, .csv, .txt dan pengurai soal (19 pemeriksaan).
+Berkas contoh dibuat dengan python-docx, openpyxl, dan reportlab; atur `SG_FIXTURES` ke foldernya.

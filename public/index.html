@@ -84,10 +84,9 @@
         <h2 id="h-layanan">Layanan</h2>
         <p id="svc-intro"></p>
       </div>
-      <a class="more-link" href="layanan.html" id="all-svc">Lihat semua layanan</a>
     </div>
     <div class="gtabs-wrap"><div class="gtabs" id="gtabs" role="group" aria-label="Kelompok layanan"></div></div>
-    <div class="scards" id="svc"></div>
+    <div id="svc"></div>
   </div>
 </section>
 
@@ -282,6 +281,7 @@
 
   /* ===== Papan Informasi KPLH ===== */
   $("#kplh").innerHTML = window.SH.kplhHTML(window.KPLH);
+  $("#kplh").classList.toggle("kplh--excel", window.KPLH.theme === "excel");   // bawaan: selaras warna situs
   $("#kplh-cetak").addEventListener("click", () => window.print());
 
   /* ===== Statistik ===== */
@@ -315,19 +315,27 @@
 
   /* ===== Layanan: tab pil + kartu ===== */
   const filterTabs = groupList().filter(g => !g.url);
-  let activeGroup = filterTabs.length ? filterTabs[0].name : "";
+  /* Semua layanan langsung tampil (tab "Semua"), dikelompokkan per tab. Tab lain hanya menyaring. */
+  let activeGroup = "Semua";
   function renderServices() {
-    $("#gtabs").innerHTML = groupTabsHTML(activeGroup, false);
-    const inGroup = window.SERVICES.filter(s => s.group === activeGroup);
-    const feat = inGroup.filter(s => s.featured);
-    const list = (feat.length ? feat : inGroup).slice(0, 6);
-    $("#svc").innerHTML = list.length ? list.map(serviceCardHTML).join("") : '<p class="empty">Belum ada layanan pada tab ini.</p>';
+    $("#gtabs").innerHTML = groupTabsHTML(activeGroup, true);
+    const groups = activeGroup === "Semua" ? filterTabs.map(g => g.name) : [activeGroup];
+    const known = new Set(filterTabs.map(g => g.name));
+    const blocks = groups.map(g => {
+      const list = window.SERVICES.filter(s => s.group === g);
+      if (!list.length) return "";
+      return `<div class="svc-block">${activeGroup === "Semua" ? `<h3 class="svc-group">${esc(g)} <span>${list.length}</span></h3>` : ""}<div class="scards">${list.map(serviceCardHTML).join("")}</div></div>`;
+    });
+    if (activeGroup === "Semua") {                       // layanan yang tabnya sudah dihapus tetap tampil
+      const rest = window.SERVICES.filter(s => !known.has(s.group));
+      if (rest.length) blocks.push(`<div class="svc-block"><h3 class="svc-group">Lainnya <span>${rest.length}</span></h3><div class="scards">${rest.map(serviceCardHTML).join("")}</div></div>`);
+    }
+    $("#svc").innerHTML = blocks.join("") || '<p class="empty">Belum ada layanan pada tab ini.</p>';
   }
   $("#gtabs").addEventListener("click", e => {
     const b = e.target.closest("button[data-g]"); if (!b) return;
     activeGroup = b.dataset.g; renderServices();
   });
-  $("#all-svc").textContent = "Lihat semua layanan (" + window.SERVICES.length + ")";
   $("#svc").addEventListener("click", e => { const b = e.target.closest(".sbtn"); if (b) openService(b.dataset.svc); });
   renderServices();
 

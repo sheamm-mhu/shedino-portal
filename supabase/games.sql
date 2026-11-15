@@ -938,6 +938,62 @@ begin
   return n;
 end $$;
 
+-- Impor "ganti semua": butir tayang ditandai hapus, draf dibuang. Berlaku setelah Terbitkan.
+create or replace function public.game_admin_clear(p_kind text) returns int
+language plpgsql security definer set search_path = public as $$
+declare t text; n int;
+begin
+  perform public.game_require_admin();
+  t := case p_kind when 'word' then 'game_words' when 'sign' then 'game_signs' when 'question' then 'game_questions' when 'scene' then 'game_scenes' end;
+  if t is null then raise exception 'Jenis butir tidak dikenal.'; end if;
+  execute format('delete from public.%I where not live', t);
+  execute format('update public.%I set pending_op = ''delete'', pending = null where live', t);
+  get diagnostics n = row_count;
+  return n;
+end $$;
+
+-- Batalkan semua perubahan yang belum diterbitkan
+create or replace function public.game_admin_discard() returns void
+language plpgsql security definer set search_path = public as $$
+declare t text;
+begin
+  perform public.game_require_admin();
+  foreach t in array array['game_words','game_signs','game_questions','game_scenes'] loop
+    execute format('delete from public.%I where not live', t);
+    execute format('update public.%I set pending = null, pending_op = null where pending_op is not null', t);
+  end loop;
+  update public.game_layout set grid = live_grid where id = 1;
+end $$;
+
+-- Jumlah perubahan yang belum diterbitkan
+create or replace function public.game_admin_pending() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare w int; g int; q int; c int;
+begin
+  perform public.game_require_admin();
+  select count(*) into w from public.game_words where not live or pending_op is not null;
+  select count(*) into g from public.game_signs where not live or pending_op is not null;
+  select count(*) into q from public.game_questions where not live or pending_op is not null;
+  select count(*) into c from public.game_scenes where not live or pending_op is not null;
+  return jsonb_build_object('words', w, 'signs', g, 'questions', q, 'scenes', c, 'total', w + g + q + c);
+end $$;
+
+-- Daftar peserta (akun disetujui) dengan ringkasan permainan
+create or replace function public.game_admin_participants()
+returns table (user_id uuid, full_name text, employee_id text, department text, attempts int, passed_levels int, last_played timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+#variable_conflict use_column
+begin
+  perform public.game_require_admin();
+  return query
+  select p.id, p.full_name, p.employee_id, p.department, count(a.id)::int,
+         (count(distinct a.level) filter (where a.passed))::int, max(coalesce(a.finished_at, a.started_at))
+  from public.profiles p left join public.game_attempts a on a.user_id = p.id
+  where p.status = 'approved'
+  group by p.id, p.full_name, p.employee_id, p.department
+  order by p.full_name;
+end $$;
+
 -- =====================================================================
 -- 15) Data awal: 15 kata TTS dan 12 soal (hanya sekali; tidak dimasukkan ulang bila sudah dihapus)
 -- =====================================================================
@@ -978,6 +1034,13 @@ begin
   where id = 1;
 end $$;
 
+-- Level yang belum punya konten sama sekali dinonaktifkan dulu (hanya bila pengaturan masih bawaan),
+-- supaya menerbitkan soal level 3 tidak terhalang level lain. Admin bisa mengaktifkannya lagi di panel.
+update public.game_settings set active_levels = '{3}'
+where id = 1 and active_levels = '{1,2,3,4}'
+  and not exists (select 1 from public.game_signs) and not exists (select 1 from public.game_scenes)
+  and (select grid is null and live_grid is null from public.game_layout where id = 1);
+
 -- =====================================================================
 -- 16) Hak akses fungsi: tutup untuk umum, buka hanya untuk yang masuk
 -- =====================================================================
@@ -995,5 +1058,6 @@ grant execute on function
   public.game_set_department(text),
   public.game_settings_public(),
   public.game_admin_save_item(text, uuid, jsonb), public.game_admin_delete_item(text, uuid), public.game_admin_save_layout(jsonb),
-  public.game_publish(), public.game_admin_reset_scores(text, uuid)
+  public.game_publish(), public.game_admin_reset_scores(text, uuid),
+  public.game_admin_clear(text), public.game_admin_discard(), public.game_admin_pending(), public.game_admin_participants()
 to authenticated;

@@ -1,0 +1,108 @@
+import os
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'e2e_base.py'), encoding='utf-8').read())
+from playwright.sync_api import sync_playwright
+import openpyxl
+adm = mkuser('adm@x', 'Admin SHE', 'SHE', role='admin'); ply = mkuser('budi@x', 'Budi Santoso', 'Produksi')
+FX = os.environ.get('SG_FIXTURES', '/tmp/fx/')
+with sync_playwright() as p:
+    b = p.chromium.launch(); ctx = b.new_context(viewport={'width': 1366, 'height': 900}, accept_downloads=True); pg = ctx.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('dialog', lambda d: d.accept()); wire(pg)
+    login(pg, 'adm@x', 'admin.html'); pg.wait_for_selector('#atabs:not(.hidden)'); pg.click('[data-tab=games]'); pg.wait_for_selector('#ga-set')
+    # ---- pengaturan
+    chk('G1 tab SHEGAMES: formulir pengaturan terisi dari database; level 1, 2, 4 belum bisa diaktifkan (segera hadir), level 3 aktif', pg.input_value('[data-s=pass_score]') == '60' and pg.is_checked('[data-lv="3"]') and pg.is_disabled('[data-lv="1"]') and 'Produksi' in pg.input_value('[data-s=departments]'))
+    pg.wait_for_timeout(500); chk('G2 bilah terbit: tidak ada perubahan tertunda, tombol Terbitkan nonaktif', 'sudah diterbitkan' in pg.inner_text('#ga-pending') and pg.is_disabled('#ga-publish'))
+    pg.fill('[data-s=pass_score]', '150'); pg.click('#ga-set-save'); pg.wait_for_timeout(300)
+    chk('G3 nilai lulus 150 ditolak dengan pesan (0 sampai 100)', '0 sampai 100' in pg.inner_text('#ga-msg') and Q1("select pass_score from game_settings") == 60, pg.inner_text('#ga-msg'))
+    pg.fill('[data-s=pass_score]', '70'); pg.fill('[data-s=q_count]', '5'); pg.fill('[data-s=timer_mcq]', '0'); pg.fill('[data-s=max_attempts]', '3')
+    pg.fill('[data-s=departments]', 'Produksi\nPlant\n\nplant\nGudang'); pg.select_option('[data-s=rank_basis]', 'level'); pg.select_option('[data-s=sequential]', 'false'); pg.fill('[data-s=company]', 'PT Uji')
+    pg.click('#ga-set-save'); pg.wait_for_timeout(700)
+    row = Q("select pass_score,q_count,timer_mcq,max_attempts,departments,rank_basis,sequential,company,active_levels from game_settings")[0]
+    chk('G4 pengaturan tersimpan ke database (departemen kembar/kosong dibuang)', row == (70, 5, 0, 3, ['Produksi', 'Plant', 'Gudang'], 'level', False, 'PT Uji', [3]) and 'tersimpan' in pg.inner_text('#ga-msg'), row)
+    # ---- daftar soal + tambah
+    pg.click('.ga-tabs [data-g=q]'); pg.wait_for_selector('#ga-q-tbl tbody tr')
+    chk('Q1 daftar soal: 12 soal awal berstatus Tayang, kunci tampil', pg.locator('#ga-q-tbl tbody tr').count() == 12 and pg.locator('#ga-q-tbl .chip.approved').count() == 12)
+    pg.click('#ga-q-add'); pg.wait_for_selector('#ga-qf'); pg.fill('#ga-qf .iq', 'Soal buatan admin?')
+    for i, t in enumerate(['Satu', 'Dua', 'Tiga', 'Empat']): pg.locator('#ga-qf .io').nth(i).fill(t)
+    pg.click('#ga-qf button[type=submit]'); pg.wait_for_timeout(300)
+    chk('Q2 menyimpan soal tanpa kunci ditolak di formulir', 'Tanpa kunci jawaban' in pg.inner_text('#ga-qf-msg'))
+    pg.locator('#ga-qf input[type=radio]').nth(2).check(); pg.click('#ga-qf [data-addopt]'); pg.locator('#ga-qf .io').nth(4).fill('Lima'); pg.fill('#ga-qf .ie', 'Karena tiga.')
+    pg.click('#ga-qf button[type=submit]'); pg.wait_for_selector('#ga-q-tbl .chip.pending'); pg.wait_for_timeout(500)
+    r = Q("select q,opts,key,expl,live from game_questions where q='Soal buatan admin?'")
+    chk('Q3 soal baru (5 pilihan, kunci C) tersimpan sebagai DRAF, belum tayang; bilah terbit menunjukkan 1 perubahan', r == [('Soal buatan admin?', ['Satu', 'Dua', 'Tiga', 'Empat', 'Lima'], 2, 'Karena tiga.', False)] and '1 perubahan' in pg.inner_text('#ga-pending') and not pg.is_disabled('#ga-publish'), (r, pg.inner_text('#ga-pending')))
+    # ubah & hapus soal tayang, pulihkan, batalkan
+    first = pg.locator('#ga-q-tbl tbody tr').first; fid = first.get_attribute('data-id'); old = Q1("select q from game_questions where id=%s", (fid,))
+    first.locator('[data-act=edit]').click(); pg.wait_for_selector('#ga-qf'); pg.fill('#ga-qf .iq', 'Teks soal diubah'); pg.click('#ga-qf button[type=submit]'); pg.wait_for_timeout(900)
+    chk('Q4 mengubah soal tayang: status "Diubah, belum terbit"; isi tayang di database belum berubah', 'Diubah, belum terbit' in pg.locator(f'#ga-q-tbl tr[data-id="{fid}"]').inner_text() and Q1("select q from game_questions where id=%s", (fid,)) == old)
+    second = pg.locator('#ga-q-tbl tbody tr').nth(1); sid = second.get_attribute('data-id'); second.locator('[data-act=del]').click(); pg.wait_for_timeout(900)
+    chk('Q5 menghapus soal tayang: status "Akan dihapus" dan tombol Pulihkan', 'Akan dihapus' in pg.locator(f'#ga-q-tbl tr[data-id="{sid}"]').inner_text() and pg.locator(f'#ga-q-tbl tr[data-id="{sid}"] [data-act=restore]').count() == 1)
+    pg.locator(f'#ga-q-tbl tr[data-id="{sid}"] [data-act=restore]').click(); pg.wait_for_timeout(900)
+    chk('Q6 Pulihkan membatalkan penghapusan soal itu', Q1("select pending_op from game_questions where id=%s", (sid,)) != 'delete')
+    pg.click('#ga-discard'); pg.wait_for_timeout(1000)
+    chk('Q7 Batalkan perubahan: draf baru hilang, soal tayang utuh (12), tidak ada perubahan tertunda', Q1("select count(*) from game_questions") == 12 and Q1("select count(*) from game_questions where pending_op is not null or not live") == 0 and 'sudah diterbitkan' in pg.inner_text('#ga-pending'))
+    # ---- impor
+    def imp(fname):
+        pg.wait_for_selector('#ga-q-file', state='attached'); pg.set_input_files('#ga-q-file', FX + fname); pg.wait_for_timeout(300)
+        try: pg.wait_for_selector('#ga-imp-sum, #ga-q-st.err', timeout=15000)
+        except Exception: pass
+        pg.wait_for_timeout(300)
+        return pg.inner_text('#ga-imp-sum') if pg.locator('#ga-imp-sum').count() else 'GALAT: ' + pg.inner_text('#ga-q-st')
+    def cancel(): pg.click('#ga-imp-x'); pg.wait_for_selector('#ga-q-tbl')
+    s = imp('soal.txt'); chk('I1 impor .txt: 4 soal terbaca, 3 siap, 1 perlu diperbaiki (tanpa kunci)', '4 soal terbaca: 3 siap disimpan, 1 perlu diperbaiki' in s and 'Tanpa kunci jawaban' in pg.inner_text('.ga-item.bad') and 'Simpan 3 soal' in pg.inner_text('#ga-imp-save'), s)
+    pg.locator('.ga-item.bad input[type=radio]').first.check(); pg.wait_for_timeout(200)
+    chk('I2 pratinjau bisa diedit: memilih kunci pada soal bermasalah membuatnya siap (4 siap)', '4 siap disimpan, 0 perlu diperbaiki' in pg.inner_text('#ga-imp-sum') and pg.locator('.ga-item.bad').count() == 0)
+    pg.locator('.ga-item').nth(1).locator('.iq').fill(''); pg.wait_for_timeout(200)
+    chk('I3 mengosongkan teks soal langsung menandainya bermasalah lagi', 'Soal kosong' in pg.inner_text('.ga-item.bad') and 'Simpan 3 soal' in pg.inner_text('#ga-imp-save'))
+    pg.locator('.ga-item').nth(1).locator('[data-drop]').click(); pg.wait_for_timeout(200)
+    pg.click('#ga-imp-save'); pg.wait_for_selector('#ga-q-tbl'); pg.wait_for_timeout(800)
+    chk('I4 mode Tambahkan: 3 soal masuk sebagai draf (total 15), pesan mengingatkan Terbitkan', Q1("select count(*) from game_questions") == 15 and Q1("select count(*) from game_questions where not live") == 3 and 'Terbitkan' in pg.inner_text('#ga-msg'), pg.inner_text('#ga-msg'))
+    pg.click('#ga-publish'); pg.wait_for_timeout(1200)
+    chk('I5 Terbitkan: 15 soal tayang, pesan sukses', Q1("select count(*) from game_questions where live") == 15 and '15 soal pilihan ganda' in pg.inner_text('#ga-msg'), pg.inner_text('#ga-msg'))
+    s = imp('soal_teks.docx'); chk('I6 impor Word (.docx) bernomor ketik: 4 soal (3 siap, 1 tanpa kunci)', '4 soal terbaca: 3 siap' in s, s); cancel()
+    s = imp('soal_auto.docx'); chk('I7 impor Word bernomor otomatis + kunci tebal: 2 soal siap', '2 soal terbaca: 2 siap' in s, s); cancel()
+    s = imp('soal_tabel.docx'); chk('I8 impor tabel Word: 2 soal siap', '2 soal terbaca: 2 siap' in s, s); cancel()
+    s = imp('soal.csv'); chk('I9 impor CSV: 2 soal siap', '2 soal terbaca: 2 siap' in s, s); cancel()
+    s = imp('soal.pdf'); chk('I10 impor PDF berisi teks (dibaca pdf.js di browser): 4 soal, 3 siap', '4 soal terbaca: 3 siap' in s, s)
+    if pg.locator('#ga-imp-x').count(): cancel()
+    s = imp('scan.pdf'); chk('I11 PDF hasil scan (tanpa teks) ditolak dengan penjelasan', 'GALAT' in s and 'scan' in s.lower(), s)
+    pg.set_input_files('#ga-q-file', {'name': 'gambar.png', 'mimeType': 'image/png', 'buffer': b'\x89PNG'}); pg.wait_for_timeout(400)
+    chk('I12 jenis berkas lain ditolak dengan daftar format yang didukung', '.docx, .xlsx, .csv, .pdf, atau .txt' in pg.inner_text('#ga-q-st'))
+    pg.set_input_files('#ga-q-file', {'name': 'kosong.txt', 'mimeType': 'text/plain', 'buffer': b'catatan rapat tanpa soal'}); pg.wait_for_timeout(400)
+    chk('I13 dokumen tanpa soal: pesan cara menulis format yang dikenali', 'Tidak ada soal yang dikenali' in pg.inner_text('#ga-q-st'))
+    s = imp('soal.xlsx'); chk('I14 impor Excel (.xlsx): 4 baris, 3 siap, 1 tanpa kunci', '4 soal terbaca: 3 siap' in s, s)
+    pg.check('input[name=ga-mode][value=replace]'); pg.click('#ga-imp-save'); pg.wait_for_selector('#ga-q-tbl'); pg.wait_for_timeout(900)
+    chk('I15 mode Ganti semua: 15 soal lama ditandai hapus, 3 draf baru; pemain masih memakai soal lama', Q1("select count(*) from game_questions where pending_op='delete'") == 15 and Q1("select count(*) from game_questions where not live") == 3 and Q1("select public.game_level_ready(3)"))
+    pg.click('#ga-publish'); pg.wait_for_timeout(1200)
+    qs = sorted(x[0] for x in Q("select q from game_questions"))
+    chk('I16 setelah Terbitkan hanya 3 soal dari Excel yang tayang (termasuk simbol & < > utuh)', len(qs) == 3 and 'Simbol & < > " kutip' in qs and Q1("select count(*) from game_questions where live") == 3, qs)
+    with pg.expect_download() as dl: pg.click('#ga-q-tpl')
+    dl.value.save_as('/tmp/unduhan-templat.xlsx'); ws = openpyxl.load_workbook('/tmp/unduhan-templat.xlsx').active
+    chk('I17 Unduh templat Excel: berkas .xlsx sah (dibuka openpyxl) dengan judul kolom yang benar', dl.value.suggested_filename == 'templat-soal-shegames.xlsx' and [c.value for c in ws[1]] == ['Soal', 'A', 'B', 'C', 'D', 'Jawaban', 'Penjelasan'] and ws.max_row == 3)
+    pg.screenshot(path='/tmp/v16_admin_q.png')
+    # ---- pemain menerima soal baru
+    c2 = b.new_context(); p2 = c2.new_page(); wire(p2); login(p2, 'budi@x'); p2.wait_for_selector('.g-level'); p2.wait_for_timeout(400)
+    lv = p2.evaluate("[...document.querySelectorAll('.g-level')].map(c=>c.querySelector('.g-pill').textContent)")
+    chk('P1 lobi pemain: level 1, 2, 4 "Segera hadir"; level 3 bisa dimainkan dengan batas 3 percobaan', lv[0] == 'Segera hadir' and lv[1] == 'Segera hadir' and lv[3] == 'Segera hadir' and 'Percobaan 0/3' in p2.inner_text('.g-level:nth-child(3)'), lv)
+    p2.click('.g-level:nth-child(3) a.g-btn'); p2.wait_for_selector('.g-opt'); p2.wait_for_timeout(300)
+    chk('P2 pemain mendapat soal hasil impor (3 soal, tanpa penghitung waktu karena diatur 0)', 'dari 3' in p2.inner_text('.g-bar') and not p2.is_visible('#g-timer') and p2.inner_text('#g-q') in qs, p2.inner_text('.g-bar'))
+    for i in range(3):
+        p2.locator('.g-opt').first.click(); p2.wait_for_selector('#g-nx'); p2.click('#g-nx')
+    p2.wait_for_selector('.g-result'); chk('P3 nilai lulus mengikuti pengaturan admin (70)', 'nilai lulus 70' in p2.inner_text('.g-badge'), p2.inner_text('.g-badge')); c2.close()
+    # ---- peserta & skor
+    pg.click('.ga-tabs [data-g=people]'); pg.wait_for_selector('#ga-p-tbl tbody tr'); t = pg.inner_text('#ga-p-tbl')
+    chk('S1 peserta & skor: Budi tampil dengan 1 percobaan; admin 0', 'Budi Santoso' in t and pg.locator('#ga-p-tbl tr', has_text='Budi Santoso').locator('td').nth(3).inner_text() == '1', t)
+    pg.locator('#ga-p-tbl tr', has_text='Budi Santoso').locator('[data-reset]').click(); pg.wait_for_timeout(900)
+    chk('S2 hapus skor satu peserta (dengan konfirmasi): catatan hilang dari database', Q1("select count(*) from game_attempts where user_id=%s", (ply,)) == 0 and 'dihapus' in pg.inner_text('#ga-msg'))
+    chk('S3 tanpa error JS di seluruh alur admin', errs == [], errs[:3])
+    # ---- aksesibilitas + ponsel
+    AXE = open(os.environ.get('AXE_JS', 'axe.min.js')).read()
+    def axe():
+        pg.evaluate(AXE); v = pg.evaluate("axe.run(document.getElementById('games-panel'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']},resultTypes:['violations']})")['violations']
+        return [(x['impact'], x['id'], x['nodes'][0]['target'][0]) for x in v]
+    v1 = axe(); pg.click('.ga-tabs [data-g=q]'); pg.wait_for_selector('#ga-q-tbl'); v2 = axe(); pg.click('.ga-tabs [data-g=set]'); pg.wait_for_selector('#ga-set'); v3 = axe()
+    chk('X1 aksesibilitas panel SHEGAMES (peserta, soal, pengaturan): 0 pelanggaran', v1 == [] and v2 == [] and v3 == [], (v1, v2, v3))
+    ctx.close()
+    m = b.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True); mp = m.new_page(); wire(mp); login(mp, 'adm@x', 'admin.html'); mp.wait_for_selector('#atabs:not(.hidden)'); mp.click('[data-tab=games]'); mp.wait_for_selector('#ga-set')
+    o1 = mp.evaluate("document.documentElement.scrollWidth>document.documentElement.clientWidth"); mp.click('.ga-tabs [data-g=q]'); mp.wait_for_selector('#ga-q-tbl'); o2 = mp.evaluate("document.documentElement.scrollWidth>document.documentElement.clientWidth")
+    chk('X2 ponsel 390px: panel SHEGAMES tanpa scroll samping (tabel bergeser di dalam kotaknya)', not o1 and not o2)
+    m.close(); b.close()
+done()

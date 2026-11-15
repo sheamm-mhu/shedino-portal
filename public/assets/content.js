@@ -95,7 +95,8 @@
             bulan: str(k.bulan != null ? k.bulan : base.bulan), tahun: str(k.tahun != null ? k.tahun : base.tahun),
             logoText: str(k.logoText != null ? k.logoText : base.logoText),
             rows: Array.isArray(k.rows) ? k.rows.slice(0, 80).map(r => ({ label: str(r && r.label), objective: str(r && r.objective), mtd: str(r && r.mtd), ytd: str(r && r.ytd), ptd: str(r && r.ptd) })) : (base.rows || []),
-            infoText: str(k.infoText), infoImage: safeUrl(k.infoImage)
+            infoText: str(k.infoText), infoImage: safeUrl(k.infoImage),
+            theme: k.theme === "excel" ? "excel" : "site"
           };
         } else if (row.key === "pillars" && Array.isArray(row.value) && row.value.length) {
           window.CONFIG.pillars = row.value.map(p => ({ title: String((p && p.title) || ""), text: String((p && p.text) || "") })).filter(p => p.title || p.text);

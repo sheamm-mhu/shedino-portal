@@ -59,6 +59,13 @@
     catch (e) { throw new Error("Gagal terhubung ke server. Periksa koneksi internet Anda."); }
     if (res.error) {
       const m = res.error.message || "";
+      if (/permission denied for (function|table|schema|relation)/i.test(m)) {
+        // Database menolak: sesi berakhir (permintaan terkirim tanpa login) atau izin fungsi belum dipasang
+        let session = null;
+        try { session = (await Auth.client.auth.getSession()).data.session; } catch (e) { session = null; }
+        if (!session) { const er = new Error("Sesi masuk Anda sudah berakhir. Silakan masuk lagi."); er.relogin = true; throw er; }
+        throw new Error("Akun Anda belum mendapat izin menjalankan SHEGAMES di database. Minta admin menjalankan ulang supabase/games.sql di Supabase (SQL Editor).");
+      }
       throw new Error(/fetch|network/i.test(m) ? "Gagal terhubung ke server. Periksa koneksi internet Anda." : (m || "Terjadi kesalahan. Coba lagi."));
     }
     return res.data;
@@ -132,9 +139,9 @@
   function card(l, s) {
     const m = LV[l.level], max = s.max_attempts;
     let pill = "", btn = "", note = "";
-    if (!l.active) { pill = `<span class="g-pill">Tidak aktif</span>`; }
+    if (!m.built) { pill = `<span class="g-pill soon">Segera hadir</span>`; }
+    else if (!l.active) { pill = `<span class="g-pill">Tidak aktif</span>`; }
     else if (!l.ready) { pill = `<span class="g-pill">Belum tersedia</span>`; note = "Soal belum diterbitkan admin."; }
-    else if (!m.built) { pill = `<span class="g-pill soon">Segera hadir</span>`; }
     else if (!l.unlocked) { pill = `<span class="g-pill lock">Terkunci</span>`; note = "Lulus level sebelumnya minggu ini untuk membuka."; }
     else if (l.active_attempt) { btn = `<a class="g-btn" href="#/main/${l.level}">Lanjutkan</a>`; }
     else if (max > 0 && l.attempts >= max) { pill = `<span class="g-pill lock">Batas percobaan tercapai</span>`; }
@@ -335,7 +342,10 @@
       else if (h === "#/peringkat") await board();
       else if (h === "#/cara-main") help();
       else await lobby();
-    } catch (e) { message("Terjadi kendala", esc(e.message), `<a class="g-btn" href="#/">Muat ulang</a>`); }
+    } catch (e) {
+      if (e.relogin) message("Sesi berakhir", esc(e.message), `<a class="g-btn" href="masuk.html?next=shegames.html">Masuk lagi</a>`);
+      else message("Terjadi kendala", esc(e.message), `<button type="button" class="g-btn" onclick="location.reload()">Muat ulang</button>`);
+    }
     const main = $("#g-main"); if (main && !/main\//.test(h)) main.scrollTop = 0;
   }
   window.addEventListener("hashchange", () => { if (G && !/^#\/main\//.test(location.hash)) G = null; route(); });
@@ -347,7 +357,10 @@
     if (!st) { message("Masuk untuk bermain", "SHEGAMES hanya untuk karyawan yang sudah punya akun dan disetujui admin.", `<a class="g-btn" href="masuk.html?next=shegames.html">Masuk atau daftar</a>`); return; }
     if (!st.profile || st.profile.status !== "approved") { message("Akun menunggu persetujuan", "Akun Anda sudah terdaftar tetapi belum disetujui admin. Coba lagi setelah disetujui.", `<a class="g-btn ghost" href="index.html">Kembali ke SHEDINO</a>`); return; }
     try { await refreshStatus(); }
-    catch (e) { message("SHEGAMES belum siap", esc(e.message) + " Pastikan admin sudah menjalankan supabase/games.sql.", `<a class="g-btn ghost" href="index.html">Kembali ke SHEDINO</a>`); return; }
+    catch (e) {
+      if (e.relogin) { message("Sesi berakhir", esc(e.message), `<a class="g-btn" href="masuk.html?next=shegames.html">Masuk lagi</a>`); return; }
+      message("SHEGAMES belum siap", esc(e.message), `<a class="g-btn ghost" href="index.html">Kembali ke SHEDINO</a>`); return;
+    }
     if (!ST.profile || !ST.profile.department) openDept();
     route();
   }
