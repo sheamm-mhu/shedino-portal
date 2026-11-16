@@ -134,6 +134,19 @@ chk('O7 pemain biasa tidak bisa memanggil fungsi admin baru (4 fungsi)', not ok 
 S("delete from game_attempts"); S("insert into game_attempts(user_id,level,week,status,finished_at,score,passed) values (%s,3,public.game_week_start(),'finished',now(),80,true),(%s,3,public.game_week_start(),'finished',now(),40,false)",(p1,p1))
 ok,rows=A("select full_name,employee_id,department,attempts,passed_levels,last_played is not null from public.game_admin_participants()")
 chk('O8 daftar peserta: nama, NIK, departemen, jumlah percobaan, level lulus, terakhir main', ok and ('Budi','NBudi','Produksi',2,1,True) in rows and any(r[0]=='Admin' and r[3]==0 for r in rows), rows)
+# ===== Q. tidak ada perubahan = tidak ada draf =====
+S("delete from game_questions"); 
+for i in range(3): save('question',{'q':f'Q{i}','opts':['a','b'],'key':0,'expl':'e'})
+A("select public.game_publish()")
+qq=S1("select id::text from game_questions where q='Q0'")
+A("select public.game_admin_delete_item('question',%s)",(qq,)); A("select public.game_admin_save_item('question',%s,%s)",(qq,json.dumps({'q':'Q0','opts':['a','b'],'key':0,'expl':'e'})))
+chk('Q1 Pulihkan (simpan isi yang sama setelah ditandai hapus) membersihkan penanda: tidak ada perubahan tertunda', S("select pending_op, pending is null from game_questions where id=%s",(qq,))==[(None,True)])
+save('question',{'q':'Q0 ubah','opts':['a','b'],'key':1,'expl':'e'},qq); chk('Q2 mengubah butir tayang membuat draf perubahan', S1("select pending_op from game_questions where id=%s",(qq,))=='edit')
+save('question',{'q':'Q0','opts':['a','b'],'key':0,'expl':'e'},qq); chk('Q3 mengubah kembali ke isi semula membatalkan draf perubahan itu', S("select pending_op, pending is null from game_questions where id=%s",(qq,))==[(None,True)] and A("select public.game_admin_pending()")[1]['total']==0)
+S("insert into game_scenes(title,prompt,image,img_w,img_h,points,live) values ('F','p','assets/a.jpg',1200,800,%s,true)",(json.dumps([{'x':14,'y':55.5,'r':9,'name':'n','risk':'r','control':'c'}]),))
+sid2=S1("select id::text from game_scenes where title='F'")
+save('scene',{'title':'F','prompt':'p','image':'assets/a.jpg','img_w':1200,'img_h':800,'points':[{'x':14,'y':55.5,'r':9,'name':'n','risk':'r','control':'c'}]},sid2)
+chk('Q4 foto bahaya: isi identik (angka desimal dan urutan kunci berbeda) dikenali sebagai tidak berubah', S1("select pending_op from game_scenes where id=%s",(sid2,)) is None)
 # ===== N. hapus skor =====
 S("delete from game_attempts")
 for u in (p1,adm):

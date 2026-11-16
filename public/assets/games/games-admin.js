@@ -6,9 +6,9 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const LET = "ABCDE";
-  const BUILT = { 1: false, 2: false, 3: true, 4: false };
+  const BUILT = { 1: true, 2: true, 3: true, 4: true };
   const LNAME = { 1: "Teka-teki silang JSA", 2: "Tebak rambu", 3: "Pilihan ganda", 4: "Tebak bahaya" };
-  let panel = null, tab = "set", S = null, QS = [], IMPORT = null;
+  let panel = null, tab = "dash", S = null, QS = [], IMPORT = null;
 
   function friendly(m) {
     m = String(m || "");
@@ -40,13 +40,17 @@
         </div>
         <div id="ga-msg" class="msg" role="status" aria-live="polite"></div>
         <div class="ga-tabs" role="tablist" aria-label="Bagian SHEGAMES">
-          <button type="button" role="tab" data-g="set">Pengaturan</button>
-          <button type="button" role="tab" data-g="q">Soal pilihan ganda</button>
+          <button type="button" role="tab" data-g="dash">Dasbor</button>
+          <button type="button" role="tab" data-g="set">Umum</button>
+          <button type="button" role="tab" data-g="l1">1 &middot; Teka-teki silang</button>
+          <button type="button" role="tab" data-g="l2">2 &middot; Tebak rambu</button>
+          <button type="button" role="tab" data-g="q">3 &middot; Pilihan ganda</button>
+          <button type="button" role="tab" data-g="l4">4 &middot; Tebak bahaya</button>
           <button type="button" role="tab" data-g="people">Peserta &amp; skor</button>
         </div>
         <div id="ga-body"></div>
       </div>`;
-    $(".ga-tabs").addEventListener("click", e => { const b = e.target.closest("[data-g]"); if (b) { tab = b.dataset.g; IMPORT = null; draw(); } });
+    $(".ga-tabs").addEventListener("click", e => { const b = e.target.closest("[data-g]"); if (b) { tab = b.dataset.g; IMPORT = null; if (window.GamesAdmin2) window.GamesAdmin2.reset(); draw(); } });
     $("#ga-publish").addEventListener("click", publish);
     $("#ga-discard").addEventListener("click", discard);
     await draw();
@@ -66,9 +70,11 @@
     const body = $("#ga-body"); body.innerHTML = '<p class="empty">Memuat...</p>';
     pending();
     try {
-      if (tab === "set") await drawSettings();
+      if (tab === "dash") await window.GamesAdmin2.draw("dash", api());
+      else if (tab === "set") await drawSettings();
       else if (tab === "q") await drawQuestions();
-      else await drawPeople();
+      else if (tab === "people") await drawPeople();
+      else await window.GamesAdmin2.draw(tab, api());
     } catch (e) { body.innerHTML = `<p class="warnbox">${esc(e.message)}</p>`; }
   }
   async function publish() {
@@ -102,21 +108,17 @@
         </div>
         <label>Daftar departemen (satu per baris)<textarea data-s="departments" rows="5" placeholder="Produksi&#10;Plant">${esc((S.departments || []).join("\n"))}</textarea><span class="fhelp">Dipakai pemain saat memilih departemen dan untuk filter peringkat. Kosongkan agar pemain bebas mengisi.</span></label>
         <h3>Level aktif</h3>
-        <div class="ga-levels">${[1, 2, 3, 4].map(n => `<label class="fchk"><input type="checkbox" data-lv="${n}"${(S.active_levels || []).includes(n) ? " checked" : ""}${BUILT[n] ? "" : " disabled"}> Level ${n}: ${LNAME[n]}${BUILT[n] ? "" : " <em>(segera hadir)</em>"}</label>`).join("")}</div>
+        <div class="ga-levels">${[1, 2, 3, 4].map(n => `<label class="fchk"><input type="checkbox" data-lv="${n}"${(S.active_levels || []).includes(n) ? " checked" : ""}${BUILT[n] ? "" : " disabled"}> Level ${n}: ${LNAME[n]}</label>`).join("")}</div>
         <h3>Aturan main</h3>
-        <div class="frow">${num("pass_score", "Nilai lulus", 0, 100, "0 sampai 100.")}${num("max_attempts", "Batas percobaan per level per minggu", 0, 999, "0 berarti tanpa batas.")}</div>
+        <div class="frow">${num("pass_score", "Nilai lulus", 0, 100, "0 sampai 100. Berlaku untuk semua level.")}${num("max_attempts", "Batas percobaan per level per minggu", 0, 999, "0 berarti tanpa batas.")}</div>
         <div class="frow">
           <label>Urutan level<select data-s="sequential"><option value="true"${S.sequential ? " selected" : ""}>Berurutan (lulus level sebelumnya dulu)</option><option value="false"${S.sequential ? "" : " selected"}>Bebas (semua level terbuka)</option></select></label>
           <label>Dasar peringkat<select data-s="rank_basis"><option value="score"${S.rank_basis === "score" ? " selected" : ""}>Total skor, lalu level tertinggi</option><option value="level"${S.rank_basis === "level" ? " selected" : ""}>Level tertinggi, lalu total skor</option></select></label>
         </div>
         <div class="frow">
           <label>Bila masih seri<select data-s="tiebreak"><option value="fast"${S.tiebreak === "fast" ? " selected" : ""}>Waktu tercepat di atas</option><option value="slow"${S.tiebreak === "slow" ? " selected" : ""}>Waktu terlama di atas</option></select></label>
-          ${num("q_count", "Jumlah soal per permainan", 1, 100, "Untuk tebak rambu dan pilihan ganda.")}
         </div>
-        <h3>Waktu dan penalti</h3>
-        <div class="frow">${num("timer_mcq", "Waktu per soal pilihan ganda (detik)", 0, 600, "0 berarti tanpa batas waktu.")}${num("timer_sign", "Waktu per soal tebak rambu (detik)", 0, 600, "0 berarti tanpa batas waktu.")}</div>
-        <div class="frow">${num("hazard_time", "Batas waktu tebak bahaya (detik)", 0, 3600, "0 berarti tanpa batas waktu.")}${num("tap_penalty", "Penalti salah ketuk (poin)", 0, 100)}</div>
-        <div class="frow">${num("hint_max", "Maksimal bantuan huruf TTS", 0, 20)}${num("hint_penalty", "Penalti per bantuan huruf (poin)", 0, 100)}</div>
+        <p class="fhelp">Waktu per soal, jumlah soal, bantuan huruf, dan penalti diatur di tab tiap level.</p>
         <div class="ga-foot"><button type="submit" class="btn" id="ga-set-save">Simpan pengaturan</button><span class="fhelp">Pengaturan langsung berlaku (tidak perlu Terbitkan).</span></div>
       </form>`;
     $("#ga-set").addEventListener("submit", saveSettings);
@@ -129,7 +131,7 @@
     upd.departments = v("departments").split(/\r?\n/).map(x => x.trim().slice(0, 60)).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));
     upd.active_levels = $$("[data-lv]", f).filter(c => c.checked).map(c => +c.dataset.lv);
     if (!upd.active_levels.length) return note("err", "Pilih minimal satu level aktif.");
-    for (const k of ["pass_score", "max_attempts", "q_count", "timer_mcq", "timer_sign", "hazard_time", "tap_penalty", "hint_max", "hint_penalty"]) {
+    for (const k of ["pass_score", "max_attempts"]) {
       const el = $(`[data-s="${k}"]`, f), n = Number(el.value);
       if (el.value.trim() === "" || !Number.isInteger(n) || n < +el.min || n > +el.max) { el.focus(); return note("err", `"${el.closest("label").childNodes[0].textContent.trim()}" harus bilangan bulat ${el.min} sampai ${el.max}.`); }
       upd[k] = n;
@@ -141,6 +143,46 @@
     if (!r.data || !r.data.length) return note("err", friendly("permission denied"));
     note("ok", "Pengaturan SHEGAMES tersimpan.");
   }
+
+  /* ---------- Pengaturan per level (kartu di tiap tab level) ---------- */
+  const LSET = {
+    1: [["hint_max", "Maksimal bantuan huruf per permainan", 0, 20, "0 menonaktifkan bantuan huruf."], ["hint_penalty", "Penalti per bantuan huruf (poin)", 0, 100]],
+    2: [["q_count", "Jumlah soal per permainan", 1, 100, "Juga berlaku untuk pilihan ganda. Dibatasi jumlah rambu yang tayang."], ["timer_sign", "Waktu per soal (detik)", 0, 600, "0 berarti tanpa batas waktu."]],
+    3: [["q_count", "Jumlah soal per permainan", 1, 100, "Juga berlaku untuk tebak rambu. Dibatasi jumlah soal yang tayang."], ["timer_mcq", "Waktu per soal (detik)", 0, 600, "0 berarti tanpa batas waktu."]],
+    4: [["hazard_time", "Batas waktu (detik)", 0, 3600, "0 berarti tanpa batas waktu."], ["tap_penalty", "Penalti salah ketuk (poin)", 0, 100]]
+  };
+  async function levelSettingsHTML(level) {
+    const r = await Auth.client.from("game_settings").select("*").eq("id", 1).maybeSingle();
+    if (r.error) throw new Error(friendly(r.error.message));
+    if (!r.data) throw new Error(friendly("does not exist"));
+    S = r.data;
+    const active = (S.active_levels || []).includes(level);
+    return `<form class="ga-lset" data-level="${level}" novalidate>
+      <div class="ga-lhead"><h3>Pengaturan level ${level}: ${LNAME[level]}</h3>
+        <label class="fchk"><input type="checkbox" data-active${active ? " checked" : ""}> Level aktif</label></div>
+      <div class="frow">${LSET[level].map(f => `<label>${f[1]}<input type="number" inputmode="numeric" data-ls="${f[0]}" value="${esc(S[f[0]])}" min="${f[2]}" max="${f[3]}" step="1">${f[4] ? `<span class="fhelp">${f[4]}</span>` : ""}</label>`).join("")}</div>
+      <div class="ga-foot"><button type="submit" class="btn sm">Simpan pengaturan level ${level}</button><span class="fhelp">Langsung berlaku (tidak perlu Terbitkan).</span></div></form>`;
+  }
+  function wireLevelSettings(root) {
+    const f = $(".ga-lset", root); if (!f) return;
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      const level = +f.dataset.level, upd = { updated_at: new Date().toISOString() };
+      for (const el of $$("[data-ls]", f)) {
+        const n = Number(el.value);
+        if (el.value.trim() === "" || !Number.isInteger(n) || n < +el.min || n > +el.max) { el.focus(); return note("err", `"${el.closest("label").childNodes[0].textContent.trim()}" harus bilangan bulat ${el.min} sampai ${el.max}.`); }
+        upd[el.dataset.ls] = n;
+      }
+      const set = new Set(S.active_levels || []); if ($("[data-active]", f).checked) set.add(level); else set.delete(level);
+      if (!set.size) return note("err", "Minimal satu level harus aktif.");
+      upd.active_levels = Array.from(set).sort();
+      const r = await Auth.client.from("game_settings").update(upd).eq("id", 1).select("id");
+      if (r.error) return note("err", friendly(r.error.message));
+      if (!r.data || !r.data.length) return note("err", friendly("permission denied"));
+      note("ok", `Pengaturan level ${level} tersimpan.`);
+    });
+  }
+  const api = () => ({ rpc, note, esc, redraw: draw, pending, friendly, levelSettingsHTML, wireLevelSettings, validate: window.GamesParse.validate });
 
   /* ---------- Soal pilihan ganda ---------- */
   const viewOf = q => (q.pending_op === "edit" && q.pending) ? { q: q.pending.q, opts: q.pending.opts, key: q.pending.key, expl: q.pending.expl } : { q: q.q, opts: q.opts, key: q.key, expl: q.expl };
@@ -156,7 +198,7 @@
     if (r.error) throw new Error(friendly(r.error.message));
     QS = r.data || [];
     const live = QS.filter(q => q.live && q.pending_op !== "delete").length;
-    $("#ga-body").innerHTML = `
+    $("#ga-body").innerHTML = (await levelSettingsHTML(3)) + `
       <div class="tools ga-tools">
         <button type="button" class="btn sm" id="ga-q-add">Tambah soal</button>
         <label class="btn ghost sm ga-file">Impor dari dokumen<input type="file" id="ga-q-file" accept=".docx,.xlsx,.csv,.pdf,.txt" class="sr"></label>
@@ -174,7 +216,7 @@
         <td>${LET[v.key] || "-"}</td><td>${status(q)}</td>
         <td class="acts">${q.pending_op === "delete" ? `<button type="button" class="btn ghost sm" data-act="restore">Pulihkan</button>` : `<button type="button" class="btn ghost sm" data-act="edit">Ubah</button><button type="button" class="btn ghost sm" data-act="del">Hapus</button>`}</td></tr>`; }).join("") || `<tr><td colspan="4" class="empty">${QS.length ? "Tidak ada soal yang cocok." : "Belum ada soal. Tambah satu per satu atau impor dari dokumen."}</td></tr>`;
     };
-    fill();
+    fill(); wireLevelSettings($("#ga-body"));
     $("#ga-q-s").addEventListener("input", fill);
     $("#ga-q-add").addEventListener("click", () => editDialog(null));
     $("#ga-q-tpl").addEventListener("click", template);

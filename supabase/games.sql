@@ -51,6 +51,7 @@ create table if not exists public.game_settings (
   seeded        boolean not null default false,
   updated_at    timestamptz not null default now()
 );
+alter table public.game_settings add column if not exists seed_v2 boolean not null default false;
 insert into public.game_settings (id) values (1) on conflict (id) do nothing;
 
 -- 2) Konten. Pola draf: baris baru live=false; baris yang sudah tayang menyimpan
@@ -304,7 +305,7 @@ begin
         from jsonb_array_elements_text(st -> 'hints') h), '[]'::jsonb));
   else
     out := jsonb_build_object('attempt_id', a.id, 'level', 4, 'time_limit', s.hazard_time, 'tap_penalty', s.tap_penalty,
-      'started_ms', (st ->> 'start_ms')::bigint, 'wrong', (st ->> 'wrong')::int,
+      'started_ms', (st ->> 'start_ms')::bigint, 'now_ms', public.game_now_ms(), 'wrong', (st ->> 'wrong')::int,
       'found', coalesce((
         select jsonb_agg(jsonb_build_object('idx', f::int, 'x', (sc.points -> f::int ->> 'x')::numeric, 'y', (sc.points -> f::int ->> 'y')::numeric,
           'r', (sc.points -> f::int ->> 'r')::numeric, 'name', sc.points -> f::int ->> 'name',
@@ -740,6 +741,19 @@ begin
   raise exception 'Jenis butir tidak dikenal.';
 end $$;
 
+-- Isi butir yang sedang tayang, dalam bentuk yang sama dengan hasil game_norm_item (untuk mendeteksi "tidak ada perubahan")
+create or replace function public.game_item_json(p_kind text, p_id uuid) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare r jsonb;
+begin
+  if p_kind = 'word' then select jsonb_build_object('word', word, 'clue', clue) into r from public.game_words where id = p_id;
+  elsif p_kind = 'sign' then select jsonb_build_object('name', name, 'category', category, 'meaning', meaning, 'image', image) into r from public.game_signs where id = p_id;
+  elsif p_kind = 'question' then select jsonb_build_object('q', q, 'opts', to_jsonb(opts), 'key', key, 'expl', expl) into r from public.game_questions where id = p_id;
+  else select jsonb_build_object('title', title, 'prompt', prompt, 'image', image, 'img_w', img_w, 'img_h', img_h, 'points', points) into r from public.game_scenes where id = p_id;
+  end if;
+  return r;
+end $$;
+
 create or replace function public.game_admin_save_item(p_kind text, p_id uuid, p_data jsonb) returns uuid
 language plpgsql security definer set search_path = public as $$
 declare d jsonb; rid uuid := p_id; lv boolean;
@@ -751,7 +765,7 @@ begin
     else
       select live into lv from public.game_words where id = p_id for update;
       if not found then raise exception 'Butir tidak ditemukan.'; end if;
-      if lv then update public.game_words set pending = d, pending_op = 'edit' where id = p_id;
+      if lv then update public.game_words set pending = case when public.game_item_json('word', p_id) = d then null else d end, pending_op = case when public.game_item_json('word', p_id) = d then null else 'edit' end where id = p_id;
       else update public.game_words set word = d ->> 'word', clue = d ->> 'clue' where id = p_id; end if;
     end if;
   elsif p_kind = 'sign' then
@@ -759,7 +773,7 @@ begin
     else
       select live into lv from public.game_signs where id = p_id for update;
       if not found then raise exception 'Butir tidak ditemukan.'; end if;
-      if lv then update public.game_signs set pending = d, pending_op = 'edit' where id = p_id;
+      if lv then update public.game_signs set pending = case when public.game_item_json('sign', p_id) = d then null else d end, pending_op = case when public.game_item_json('sign', p_id) = d then null else 'edit' end where id = p_id;
       else update public.game_signs set name = d ->> 'name', category = d ->> 'category', meaning = d ->> 'meaning', image = d ->> 'image' where id = p_id; end if;
     end if;
   elsif p_kind = 'question' then
@@ -767,7 +781,7 @@ begin
     else
       select live into lv from public.game_questions where id = p_id for update;
       if not found then raise exception 'Butir tidak ditemukan.'; end if;
-      if lv then update public.game_questions set pending = d, pending_op = 'edit' where id = p_id;
+      if lv then update public.game_questions set pending = case when public.game_item_json('question', p_id) = d then null else d end, pending_op = case when public.game_item_json('question', p_id) = d then null else 'edit' end where id = p_id;
       else update public.game_questions set q = d ->> 'q', opts = array(select jsonb_array_elements_text(d -> 'opts')), key = (d ->> 'key')::int, expl = d ->> 'expl' where id = p_id; end if;
     end if;
   else
@@ -775,7 +789,7 @@ begin
     else
       select live into lv from public.game_scenes where id = p_id for update;
       if not found then raise exception 'Butir tidak ditemukan.'; end if;
-      if lv then update public.game_scenes set pending = d, pending_op = 'edit' where id = p_id;
+      if lv then update public.game_scenes set pending = case when public.game_item_json('scene', p_id) = d then null else d end, pending_op = case when public.game_item_json('scene', p_id) = d then null else 'edit' end where id = p_id;
       else update public.game_scenes set title = d ->> 'title', prompt = d ->> 'prompt', image = d ->> 'image', img_w = (d ->> 'img_w')::int, img_h = (d ->> 'img_h')::int, points = d -> 'points' where id = p_id; end if;
     end if;
   end if;
@@ -995,6 +1009,76 @@ begin
 end $$;
 
 -- =====================================================================
+-- Dasbor manajemen (hanya admin): KPI, per departemen, per level, topik sering salah, peringkat lengkap
+-- =====================================================================
+create or replace function public.game_period_attempts(p_week date, p_month date, p_all boolean)
+returns setof public.game_attempts
+language sql stable security definer set search_path = public as $$
+  select a.* from public.game_attempts a, public.game_settings s
+  where s.id = 1 and a.status = 'finished' and a.level = any(s.active_levels)
+    and (p_all
+         or (p_month is not null and date_trunc('month', a.finished_at at time zone s.tz)::date = date_trunc('month', p_month)::date)
+         or (p_month is null and a.week = coalesce(p_week, public.game_week_start())))
+$$;
+
+create or replace function public.game_admin_dashboard(p_week date default null, p_month date default null, p_all boolean default false) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare
+  s public.game_settings; reg int; act int; avg_s numeric; allp int; top numeric; nlv int;
+  depts jsonb; levels jsonb; wrong jsonb; ranking jsonb;
+begin
+  perform public.game_require_admin();
+  select * into s from public.game_settings where id = 1;
+  nlv := coalesce(array_length(s.active_levels, 1), 0);
+  select count(*) into reg from public.profiles where status = 'approved';
+  select count(distinct user_id) into act from public.game_period_attempts(p_week, p_month, p_all);
+  with best as (select user_id, level, max(score) as sc, bool_or(passed) as ok from public.game_period_attempts(p_week, p_month, p_all) group by user_id, level)
+  select round(avg(sc), 1) into avg_s from best;
+  with best as (select user_id, level, bool_or(passed) as ok from public.game_period_attempts(p_week, p_month, p_all) group by user_id, level)
+  select count(*) into allp from (select user_id from best where ok group by user_id having count(*) = nlv) q where nlv > 0;
+  select max(total) into top from public.game_leaderboard(p_week, null, p_all, p_month);
+
+  select coalesce(jsonb_agg(jsonb_build_object('level', l, 'players', coalesce(x.players, 0), 'attempts', coalesce(x.attempts, 0),
+           'passed', coalesce(x.passed, 0), 'pass_rate', case when coalesce(x.players, 0) = 0 then 0 else round(100.0 * x.passed / x.players, 1) end,
+           'avg_score', x.avg_score) order by l), '[]'::jsonb) into levels
+  from unnest(s.active_levels) l
+  left join (
+    select b.level, count(*) as players, count(*) filter (where b.ok) as passed, round(avg(b.sc), 1) as avg_score,
+           (select count(*) from public.game_period_attempts(p_week, p_month, p_all) a where a.level = b.level) as attempts
+    from (select user_id, level, max(score) as sc, bool_or(passed) as ok from public.game_period_attempts(p_week, p_month, p_all) group by user_id, level) b
+    group by b.level) x on x.level = l;
+
+  select coalesce(jsonb_agg(jsonb_build_object('department', d.dept, 'registered', d.registered, 'players', coalesce(x.players, 0),
+           'participation', case when d.registered = 0 then 0 else round(100.0 * coalesce(x.players, 0) / d.registered, 1) end, 'avg_score', x.avg_score)
+           order by x.avg_score desc nulls last, d.dept), '[]'::jsonb) into depts
+  from (select coalesce(nullif(department, ''), '(belum diisi)') as dept, count(*) as registered from public.profiles where status = 'approved' group by 1) d
+  left join (
+    select coalesce(nullif(p.department, ''), '(belum diisi)') as dept, count(distinct b.user_id) as players, round(avg(b.sc), 1) as avg_score
+    from (select user_id, level, max(score) as sc from public.game_period_attempts(p_week, p_month, p_all) group by user_id, level) b
+    join public.profiles p on p.id = b.user_id group by 1) x on x.dept = d.dept;
+
+  select coalesce(jsonb_agg(jsonb_build_object('level', t.level, 'label', t.label, 'times', t.c) order by t.c desc, t.label), '[]'::jsonb) into wrong
+  from (
+    select w.level, w.id, count(*) as c,
+      case w.level
+        when 3 then coalesce((select q from public.game_questions where id::text = w.id), '(soal sudah dihapus)')
+        when 2 then coalesce((select name from public.game_signs where id::text = w.id), '(rambu sudah dihapus)')
+        when 1 then coalesce((select word || ': ' || clue from public.game_words where id::text = w.id), '(kata sudah dihapus)')
+        else coalesce((select sc.title || ' - ' || coalesce(sc.points -> split_part(w.id, ':', 2)::int ->> 'name', 'titik') from public.game_scenes sc where sc.id::text = split_part(w.id, ':', 1)), '(foto sudah dihapus)')
+      end as label
+    from (select a.level, x as id from public.game_period_attempts(p_week, p_month, p_all) a cross join lateral unnest(a.wrong_ids) x) w
+    group by w.level, w.id order by count(*) desc limit 5) t;
+
+  select coalesce(jsonb_agg(jsonb_build_object('rank', l.rank, 'name', l.full_name, 'nik', p.employee_id, 'department', l.department, 'passed_levels', l.passed_levels,
+           's1', l.s1, 's2', l.s2, 's3', l.s3, 's4', l.s4, 'total', l.total, 'time_ms', l.time_ms) order by l.rank, l.full_name), '[]'::jsonb) into ranking
+  from public.game_leaderboard(p_week, null, p_all, p_month) l join public.profiles p on p.id = l.user_id;
+
+  return jsonb_build_object('registered', reg, 'active', act, 'active_pct', case when reg = 0 then 0 else round(100.0 * act / reg, 1) end,
+    'avg_score', avg_s, 'all_passed', allp, 'top_score', top, 'active_levels', to_jsonb(s.active_levels),
+    'levels', levels, 'departments', depts, 'wrong', wrong, 'ranking', ranking);
+end $$;
+
+-- =====================================================================
 -- 15) Data awal: 15 kata TTS dan 12 soal (hanya sekali; tidak dimasukkan ulang bila sudah dihapus)
 -- =====================================================================
 do $$
@@ -1041,6 +1125,45 @@ where id = 1 and active_levels = '{1,2,3,4}'
   and not exists (select 1 from public.game_signs) and not exists (select 1 from public.game_scenes)
   and (select grid is null and live_grid is null from public.game_layout where id = 1);
 
+-- Data awal tahap 4: 8 rambu, 1 foto bahaya dengan 5 titik, dan tata letak 15 kata TTS (sekali saja)
+do $$
+declare lay jsonb := '{"rows":16,"cols":12,"items":[["ISOLASI",1,0,2,"D"],["APD",2,0,4,"D"],["SEPATU",3,1,2,"A"],["RISIKO",4,2,0,"D"],["KESELAMATAN",5,2,11,"D"],["PELAPORAN",6,4,5,"D"],["INSIDEN",7,5,0,"A"],["EVAKUASI",8,5,9,"D"],["KACAMATA",9,7,4,"A"],["TOOLBOX",10,9,0,"A"],["LANGKAH",11,9,3,"D"],["HELM",12,11,1,"D"],["PENGENDALIAN",13,12,0,"A"],["APAR",14,12,7,"D"],["HAZARD",15,15,3,"A"]]}'::jsonb; items jsonb;
+begin
+  if (select seed_v2 from public.game_settings where id = 1) then return; end if;
+  if not exists (select 1 from public.game_signs) then
+    insert into public.game_signs (name, category, meaning, image, live) values
+      ('Dilarang merokok', 'Larangan', 'Dilarang merokok di area ini karena ada risiko kebakaran dan ledakan.', 'assets/games/signs/dilarang-merokok.svg', true),
+      ('Dilarang masuk', 'Larangan', 'Area tertutup bagi orang yang tidak berkepentingan atau tidak berwenang.', 'assets/games/signs/dilarang-masuk.svg', true),
+      ('Awas listrik', 'Peringatan', 'Ada bahaya sengatan listrik. Jangan menyentuh dan jaga jarak aman.', 'assets/games/signs/awas-listrik.svg', true),
+      ('Awas licin', 'Peringatan', 'Lantai licin atau basah. Berjalan hati-hati agar tidak terpeleset.', 'assets/games/signs/awas-licin.svg', true),
+      ('Wajib helm', 'Wajib', 'Wajib memakai helm pengaman untuk melindungi kepala dari benturan.', 'assets/games/signs/wajib-helm.svg', true),
+      ('Wajib kacamata pelindung', 'Wajib', 'Wajib memakai kacamata pelindung dari percikan, debu, dan partikel.', 'assets/games/signs/wajib-kacamata.svg', true),
+      ('Jalur evakuasi', 'Kondisi aman', 'Menunjukkan arah jalur evakuasi menuju titik aman saat keadaan darurat.', 'assets/games/signs/jalur-evakuasi.svg', true),
+      ('Alat pemadam api ringan (APAR)', 'Pemadam api', 'Lokasi APAR. Gunakan untuk memadamkan api kecil bila aman dan Anda terlatih.', 'assets/games/signs/apar.svg', true);
+  end if;
+  if not exists (select 1 from public.game_scenes) then
+    insert into public.game_scenes (title, prompt, image, img_w, img_h, points, live) values
+      ('Area gudang dan bengkel', 'Temukan 5 bahaya di area kerja ini. Ketuk bagian yang menurut Anda berbahaya.', 'assets/games/scenes/gudang.svg', 1200, 800, '[
+        {"x":14,"y":55,"r":9,"name":"Pintu darurat terhalang kardus","risk":"Jalur keluar tertutup saat evakuasi, korban bisa terjebak","control":"Kosongkan area di depan pintu darurat dan beri garis larangan menaruh barang"},
+        {"x":38,"y":24,"r":9,"name":"Tumpukan barang terlalu tinggi dan miring","risk":"Barang jatuh menimpa pekerja di bawahnya","control":"Susun maksimal sesuai batas beban rak, rapikan, dan jangan menumpuk di luar rak"},
+        {"x":83,"y":53,"r":8,"name":"Tabung gas tidak diikat","risk":"Tabung roboh, katup patah, gas bocor atau meledak","control":"Ikat tabung dengan rantai atau penyangga, pasang tutup katup, simpan tegak"},
+        {"x":62,"y":84,"r":7,"name":"Tumpahan cairan di lantai","risk":"Pekerja terpeleset dan jatuh","control":"Bersihkan dengan penyerap, pasang rambu awas licin sampai kering"},
+        {"x":28,"y":82,"r":7,"name":"Kabel listrik terkelupas melintang di lantai","risk":"Sengatan listrik dan korsleting, orang tersandung","control":"Ganti kabel rusak, rapikan lewat jalur kabel, dan pasang pelindung kabel"}
+      ]'::jsonb, true);
+  end if;
+  if (select live_grid is null from public.game_layout where id = 1)
+     and (select count(*) from public.game_words where live) = 15
+     and (select count(*) from public.game_words where live and word = any(array['HAZARD','APD','INSIDEN','PENGENDALIAN','EVAKUASI','ISOLASI','RISIKO','KESELAMATAN','APAR','HELM','SEPATU','KACAMATA','TOOLBOX','LANGKAH','PELAPORAN'])) = 15 then
+    select jsonb_agg(jsonb_build_object('id', w.id, 'num', (e ->> 1)::int, 'row', (e ->> 2)::int, 'col', (e ->> 3)::int, 'dir', e ->> 4) order by (e ->> 1)::int, e ->> 4)
+      into items from jsonb_array_elements(lay -> 'items') e join public.game_words w on w.word = e ->> 0 and w.live;
+    update public.game_layout set grid = jsonb_build_object('rows', lay -> 'rows', 'cols', lay -> 'cols', 'items', items),
+                                  live_grid = jsonb_build_object('rows', lay -> 'rows', 'cols', lay -> 'cols', 'items', items), updated_at = now() where id = 1;
+  end if;
+  -- Semua level sudah punya konten: aktifkan keempatnya bila pengaturan masih bawaan (hanya level 3)
+  update public.game_settings set active_levels = '{1,2,3,4}' where id = 1 and active_levels = '{3}';
+  update public.game_settings set seed_v2 = true where id = 1;
+end $$;
+
 -- =====================================================================
 -- 16) Hak akses fungsi: tutup untuk umum, buka hanya untuk yang masuk
 -- =====================================================================
@@ -1059,5 +1182,6 @@ grant execute on function
   public.game_settings_public(),
   public.game_admin_save_item(text, uuid, jsonb), public.game_admin_delete_item(text, uuid), public.game_admin_save_layout(jsonb),
   public.game_publish(), public.game_admin_reset_scores(text, uuid),
-  public.game_admin_clear(text), public.game_admin_discard(), public.game_admin_pending(), public.game_admin_participants()
+  public.game_admin_clear(text), public.game_admin_discard(), public.game_admin_pending(), public.game_admin_participants(),
+  public.game_admin_dashboard(date, date, boolean)
 to authenticated;

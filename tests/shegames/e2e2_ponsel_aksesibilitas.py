@@ -10,6 +10,7 @@ def axe(pg):
     return [(x['impact'], x['id'], len(x['nodes']), x['nodes'][0]['target'][0] if x['nodes'] else '') for x in v]
 JS_T = """()=>[...document.querySelectorAll('a,button,select,input')].filter(e=>{const r=e.getBoundingClientRect(),cs=getComputedStyle(e);return r.width>0&&r.height>0&&cs.visibility!=='hidden'&&!e.closest('.sr')&&!e.classList.contains('skip')}).filter(e=>{const r=e.getBoundingClientRect();return r.height<44||r.width<44}).map(e=>e.tagName+'.'+(e.className||e.id)+' '+Math.round(e.getBoundingClientRect().width)+'x'+Math.round(e.getBoundingClientRect().height))"""
 OVER = "document.documentElement.scrollWidth>document.documentElement.clientWidth"
+Q("update game_settings set sequential=false")
 with sync_playwright() as p:
     b = p.chromium.launch()
     # ---- desktop: aksesibilitas
@@ -38,14 +39,14 @@ with sync_playwright() as p:
         nav = pg.evaluate("(()=>{const n=document.querySelector('.g-nav').getBoundingClientRect();return {pos:getComputedStyle(document.querySelector('.g-nav')).position,bottom:Math.round(innerHeight-n.bottom),h:Math.round(n.height)}})()")
         chk(f'P1 {w}px: menu pindah ke bilah bawah (tetap di dasar layar), logo di atas, tanpa scroll samping', nav['pos'] == 'fixed' and nav['bottom'] == 0 and pg.is_visible('.g-logo img') and not pg.evaluate(OVER), nav)
         t = pg.evaluate(JS_T); chk(f'P2 {w}px lobi: semua target sentuh >=44px', t == [], t)
-        if w == 390: pg.screenshot(path='/tmp/v14_m_lobi.png')
+        if w == 390: pg.screenshot(path=SHOT + 'v14_m_lobi.png')
         pg.click('.g-level:nth-child(3) a.g-btn'); pg.wait_for_selector('.g-opt'); pg.wait_for_timeout(500)
         t = pg.evaluate(JS_T); chk(f'P3 {w}px soal: target sentuh >=44px, tanpa scroll samping', t == [] and not pg.evaluate(OVER), t)
-        if w == 390: pg.screenshot(path='/tmp/v14_m_main.png')
+        if w == 390: pg.screenshot(path=SHOT + 'v14_m_main.png')
         pg.goto(BASE + '/shegames.html#/peringkat'); pg.wait_for_selector('.g-table'); pg.wait_for_timeout(700)
         chk(f'P4 {w}px peringkat: tabel bergeser di dalam kotaknya, halaman tidak melebar', not pg.evaluate(OVER) and pg.evaluate("(()=>{const e=document.querySelector('.g-table-wrap');return e.scrollWidth>e.clientWidth})()"))
         t = pg.evaluate(JS_T); chk(f'P5 {w}px peringkat: target sentuh >=44px', t == [], t)
-        if w == 390: pg.screenshot(path='/tmp/v14_m_rank.png')
+        if w == 390: pg.screenshot(path=SHOT + 'v14_m_rank.png')
         chk(f'P6 {w}px tanpa error JS', me_err == [], me_err[:2]); ctx.close()
     b.close()
 done()

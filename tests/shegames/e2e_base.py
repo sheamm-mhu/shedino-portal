@@ -1,6 +1,7 @@
+"""Dasar uji menyeluruh SHEGAMES: browser -> supabase-js -> PostgREST 12 -> Postgres 16 (games.sql asli). Layanan login diganti penerbit token sederhana; penyimpanan gambar ditiru di memori."""
 """Uji menyeluruh SHEGAMES: browser -> supabase-js -> PostgREST 12 -> Postgres 16 (games.sql asli)."""
-
 import os, sys, json, time, hmac, hashlib, base64, subprocess, tempfile, socket, re
+SHOT = os.path.join(tempfile.gettempdir(), 'shegames-')   # tangkapan layar uji disimpan di folder sementara
 import pgserver, psycopg
 from urllib.parse import urlparse, parse_qs
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
@@ -71,10 +72,33 @@ def rest_handler(route, request):
     h = {k: v for k, v in resp.headers.items() if k.lower() not in ('access-control-allow-origin',)}
     h.update(CORS)
     route.fulfill(response=resp, headers=h)
+STORE = {}
+def storage_handler(route, request):
+    if request.method == 'OPTIONS': return route.fulfill(status=204, headers=CORS)
+    u = urlparse(request.url)
+    if request.method == 'POST' and '/storage/v1/object/' in u.path and '/public/' not in u.path:
+        body = request.post_data_buffer or b''; ct = request.headers.get('content-type', '')
+        bd = re.search(r'boundary=(.+)$', ct)
+        data, mime = body, 'application/octet-stream'
+        if bd:
+            for part in body.split(('--' + bd.group(1)).encode()):
+                m = re.search(rb'Content-Type: ([^\r\n]+)\r\n\r\n', part)
+                if m and b'filename' in part[:300]:
+                    mime = m.group(1).decode(); data = part[m.end():]
+                    if data.endswith(b'\r\n'): data = data[:-2]
+        key = u.path.split('/storage/v1/object/', 1)[1]
+        STORE[key] = (data, mime)
+        return route.fulfill(status=200, headers=CORS, content_type='application/json', body=json.dumps({'Key': key}))
+    if request.method == 'GET' and '/storage/v1/object/public/' in u.path:
+        key = u.path.split('/storage/v1/object/public/', 1)[1]
+        if key in STORE: return route.fulfill(status=200, headers=dict(CORS, **{'cache-control': 'no-store'}), content_type=STORE[key][1], body=STORE[key][0])
+        return route.fulfill(status=404, headers=CORS, body='x')
+    return route.fulfill(status=404, headers=CORS, body='{}')
 def wire(page):
     page.route(BASE + '/config.js', lambda r, q: r.fulfill(status=200, content_type='application/javascript', body=CFG))
     page.route(FAKE + '/auth/v1/**', auth_handler)
     page.route(FAKE + '/rest/v1/**', rest_handler)
+    page.route(FAKE + '/storage/v1/**', storage_handler)
 def login(page, email, nxt='shegames.html'):
     page.goto(f'{BASE}/masuk.html?next={nxt}'); page.fill('#in-email', email); page.fill('#in-pass', 'katasandi123')
     page.click('#f-in button[type=submit]'); page.wait_for_url('**/' + nxt.split('#')[0] + '**', timeout=8000)

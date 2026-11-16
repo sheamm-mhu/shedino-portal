@@ -33,7 +33,7 @@ for lv,co,to,h,w,exp in cs:
 chk('C1 rumus skor 4 level: % benar, penalti bantuan/salah ketuk, minimum 0, maksimum 100 (12 kasus)', ok)
 chk('C2 pembulatan 2 desimal (7/15 = 46.67)', float(S1("select public.game_score(3,7,15)"))==46.67)
 chk('A6 daftar departemen awal terisi saat data awal dimasukkan', S1("select array_length(departments,1) from game_settings")==7)
-chk('A7 pemasangan baru: hanya level 3 yang aktif selama level lain belum punya konten', S1("select active_levels from game_settings")==[3])
+chk('A7 keadaan polos (tanpa data contoh level lain): hanya level 3 aktif', S1("select active_levels from game_settings")==[3])
 S("update game_settings set active_levels='{1,2,3,4}'"); S("insert into game_signs(name,category,image,live) values ('x','Wajib','assets/a.svg',true)")
 c.execute(open(f'{ROOT}/games.sql', encoding='utf-8').read())
 chk('A8 bila level lain sudah punya konten, pilihan level aktif admin tidak diubah oleh dijalankan ulang', S1("select active_levels from game_settings")==[1,2,3,4])

@@ -250,6 +250,48 @@
     return out;
   }
 
+  /* ---------- Pengurai daftar kata teka-teki silang ---------- */
+  const normWord = w => String(w || "").toUpperCase().replace(/\s+/g, "");
+  function validateWord(it, seen) {
+    const p = [], w = normWord(it.word), clue = String(it.clue || "").trim();
+    if (!/^[A-Z]{2,20}$/.test(w)) p.push(w ? "Kata hanya boleh huruf A-Z, 2 sampai 20 huruf" : "Kata kosong");
+    if (!clue) p.push("Petunjuk kosong"); else if (clue.length > 300) p.push("Petunjuk lebih dari 300 karakter");
+    if (seen && /^[A-Z]{2,20}$/.test(w)) { if (seen.has(w)) p.push("Kata kembar (sudah ada atau muncul dua kali)"); seen.add(w); }
+    return p;
+  }
+  function finishWords(list) {
+    const seen = new Set();
+    return list.map(it => { const o = { word: String(it.word || "").trim(), clue: String(it.clue || "").trim() }; o.problems = validateWord(o, seen); return o; });
+  }
+  function parseWordsRows(rows) {
+    rows = (rows || []).map(r => r.map(c => String(c == null ? "" : c).trim()));
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+    let h = -1, wi = 0, ci = 1;
+    for (let i = 0; i < Math.min(rows.length, 4); i++) {
+      const c = rows[i].map(norm), a = c.findIndex(x => /^(jawaban|kata|answer|word)/.test(x)), b = c.findIndex(x => /^(petunjuk|clue|keterangan|definisi|pertanyaan|deskripsi)/.test(x));
+      if (a >= 0 && b >= 0 && a !== b) { h = i; wi = a; ci = b; break; }
+    }
+    if (h < 0 && !(rows.length && rows[0].length >= 2 && /^[A-Za-z ]{2,20}$/.test(rows[0][0]) && rows[0][1])) return [];
+    return finishWords(rows.slice(h + 1).filter(r => r.some(Boolean)).map(r => ({ word: r[wi] || "", clue: r[ci] || "" })));
+  }
+  function parseWordsText(text) {
+    const out = [];
+    for (const raw of String(text).split(/\r?\n/)) {
+      let line = raw.replace(/^\s*(?:\d{1,3}\s*[.)]\s*)/, "").trim();
+      if (!line) continue;
+      const m = /^([^|\t]+?)\s*(?:\||\t|\s[-\u2013\u2014]\s|:\s)\s*(.+)$/.exec(line);
+      if (!m) continue;
+      out.push({ word: m[1], clue: m[2] });
+    }
+    return finishWords(out);
+  }
+  function parseWords(doc) {
+    if (doc.rows) return parseWordsRows(doc.rows);
+    for (const t of doc.tables || []) { const r = parseWordsRows(t); if (r.length) return r; }
+    return parseWordsText(doc.text || "");
+  }
+  const WORD_TEMPLATE = [["Jawaban", "Petunjuk"], ["HAZARD", "Sumber atau situasi yang berpotensi menimbulkan cedera"], ["APD", "Alat pelindung diri"], ["EVAKUASI", "Perpindahan orang ke tempat aman saat darurat"]];
+
   /* ---------- Menulis XLSX sederhana (templat dan ekspor) ---------- */
   const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
   const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
@@ -273,16 +315,24 @@
   }
   const xesc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
   const colName = i => { let s = ""; i += 1; while (i > 0) { s = String.fromCharCode(65 + (i - 1) % 26) + s; i = Math.floor((i - 1) / 26); } return s; };
-  function makeXlsx(rows, sheetName) {
+  function sheetXml(rows) {
     const body = rows.map((r, i) => `<row r="${i + 1}">${r.map((c, k) => typeof c === "number" && isFinite(c) ? `<c r="${colName(k)}${i + 1}"><v>${c}</v></c>` : `<c r="${colName(k)}${i + 1}" t="inlineStr"><is><t xml:space="preserve">${xesc(c)}</t></is></c>`).join("")}</row>`).join("");
-    return zipStore([
-      { name: "[Content_Types].xml", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>' },
-      { name: "_rels/.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
-      { name: "xl/workbook.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xesc(sheetName || "Soal").slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets></workbook>` },
-      { name: "xl/_rels/workbook.xml.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>' },
-      { name: "xl/worksheets/sheet1.xml", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>` }
-    ]);
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`;
   }
+  /* sheets: [{ name, rows }]. Satu berkas .xlsx dengan beberapa lembar. */
+  function makeXlsxMulti(sheets) {
+    const names = sheets.map((sh, i) => (String(sh.name || "Lembar" + (i + 1)).replace(/[\[\]:*?\/\\]/g, " ").trim() || "Lembar" + (i + 1)).slice(0, 31));
+    const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("") + "</Types>";
+    const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${xesc(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("") + "</sheets></workbook>";
+    const rel = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("") + "</Relationships>";
+    return zipStore([
+      { name: "[Content_Types].xml", data: ct },
+      { name: "_rels/.rels", data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+      { name: "xl/workbook.xml", data: wb },
+      { name: "xl/_rels/workbook.xml.rels", data: rel }
+    ].concat(sheets.map((sh, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXml(sh.rows) }))));
+  }
+  const makeXlsx = (rows, sheetName) => makeXlsxMulti([{ name: sheetName || "Soal", rows }]);
   const TEMPLATE = [
     ["Soal", "A", "B", "C", "D", "Jawaban", "Penjelasan"],
     ["Rambu berbentuk lingkaran berwarna biru menandakan...", "Larangan", "Peringatan", "Kondisi aman", "Kewajiban", "D", "Lingkaran biru adalah rambu wajib."],
@@ -307,5 +357,5 @@
     for (const t of doc.tables || []) { const r = parseQuestionsRows(t); if (r.length && r.some(x => x.opts.length >= 2)) return r; }
     return parseQuestionsText(doc.text || "");
   }
-  return { readFile, readDocx, readXlsx, readPdf, parseCsv, parseQuestions, parseQuestionsText, parseQuestionsRows, validate, makeXlsx, zipEntries, zipRead, TEMPLATE };
+  return { makeXlsxMulti, parseWords, parseWordsText, parseWordsRows, validateWord, WORD_TEMPLATE, readFile, readDocx, readXlsx, readPdf, parseCsv, parseQuestions, parseQuestionsText, parseQuestionsRows, validate, makeXlsx, zipEntries, zipRead, TEMPLATE };
 });

@@ -49,10 +49,12 @@ def P(uid, q, p=None, role='authenticated'):
     except Exception as e:
         c.execute('reset role')
         return False, str(e).split('\n')[0]
-def setup():
+def setup(bare=True):
     c.execute(STUB)
     c.execute(open(f'{ROOT}/schema.sql', encoding='utf-8').read())
     c.execute(open(f'{ROOT}/games.sql', encoding='utf-8').read())
+    if bare:   # keadaan sebelum data contoh rambu, foto, dan tata letak (uji lama mengandalkan ini)
+        c.execute("delete from game_signs; delete from game_scenes; update game_layout set grid=null, live_grid=null; update game_settings set active_levels='{3}', seed_v2=true")
 def mkuser(email, name, dept='', role='karyawan', status='approved'):
     uid = S1("insert into auth.users(email,raw_user_meta_data) values (%s,%s) returning id", (email, json.dumps({'full_name': name, 'department': dept, 'employee_id': 'N' + name})))
     S("update public.profiles set role=%s, status=%s where id=%s", (role, status, uid))
