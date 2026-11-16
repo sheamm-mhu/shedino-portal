@@ -79,12 +79,14 @@
     videoBlock = `<p style="margin:1.5rem 0"><a class="btn" style="text-decoration:none;display:inline-block" href="${esc(video.src)}" target="_blank" rel="noopener">Tonton video</a></p>`;
   }
 
+  const ctaDQ = m.cta === "dailyquotes" || (!m.cta && /daily\s+safety\s+quotes/i.test(m.title));
   const body = (m.body || []).map(b => typeof b === "string" ? `<p>${esc(b)}</p>` : `<h2>${esc(b.h)}</h2>`).join("");
   $("#art").innerHTML = `
     <div class="meta"><span class="cat t-${catTone(m.category)}">${esc(m.category)}</span><span>${esc(tabName)}</span><time datetime="${esc(m.date)}">${fmtDate(m.date)}</time></div>
     <h1>${esc(m.title)}</h1>
     ${videoBlock}
     ${!video && m.image ? `<figure class="art-fig" id="fig"><button type="button" class="art-zoom" id="zoom" aria-label="Perbesar gambar"><img src="${esc(m.image)}" alt="${esc(m.title)}"></button><figcaption>Klik gambar untuk memperbesar</figcaption></figure>` : (!video ? cover(m) : "")}
+    ${ctaDQ ? `<div class="art-cta"><a class="btn cta" id="cta-dq" href="daily-quotes.html">Buat Daily Quotes</a><span>Ganti foto dan kata-katanya di templat poster ini, lalu unduh atau kirim agar tayang di galeri.</span></div>` : ""}
     <div class="body">${body}</div>
     ${m.fileUrl ? `<p style="margin:1.4rem 0 0"><a class="btn" style="text-decoration:none;display:inline-block" href="${esc(m.fileUrl)}" target="_blank" rel="noopener">Unduh lampiran</a></p>` : ""}
     <div class="tags" style="margin-top:1.5rem">${(m.tags || []).map(t => `<a class="tag" href="media.html?tag=${encodeURIComponent(t)}">#${esc(t)}</a>`).join("")}</div>

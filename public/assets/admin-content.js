@@ -137,10 +137,11 @@
         { k: "file_url", label: "Lampiran (opsional)", type: "file", folder: "lampiran", help: "PDF buletin atau materi kampanye yang dapat diunduh pembaca. Maksimal 10 MB." },
         { k: "body", label: "Isi artikel", type: "body" },
         { k: "tags", label: "Tagar", type: "tags", help: "Pisahkan dengan koma, tanpa tanda #. Contoh: SafetyFirst, APAR" },
+        { k: "cta", label: "Tombol \"Buat Daily Quotes\"", type: "select", opts: () => [["", "Otomatis (muncul bila judul memuat Daily Safety Quotes)"], ["dailyquotes", "Selalu tampilkan di artikel ini"], ["none", "Jangan tampilkan"]], help: "Tombol yang membuka halaman pembuat poster Daily Quotes. Butuh supabase/daily-quotes.sql sudah dijalankan di Supabase." },
         { k: "published", label: "Tayangkan di situs", type: "check" }
       ],
-      defaults: () => ({ tab: ((window.MEDIA_TYPES || [])[0] || { id: "kabar" }).id, pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", file_url: "", video_url: "", body: [], tags: [], published: true }),
-      fromDefault: m => ({ id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", file_url: m.fileUrl || "", video_url: m.videoUrl || "", body: m.body || [], published: true })
+      defaults: () => ({ cta: "", tab: ((window.MEDIA_TYPES || [])[0] || { id: "kabar" }).id, pub_date: today(), category: CATS()[0] || "", excerpt: "", image: "", file_url: "", video_url: "", body: [], tags: [], published: true }),
+      fromDefault: m => ({ cta: m.cta || "", id: m.id, tab: m.tab, title: m.title, excerpt: m.excerpt || "", category: m.category, pub_date: m.date, tags: m.tags || [], image: m.image || "", file_url: m.fileUrl || "", video_url: m.videoUrl || "", body: m.body || [], published: true })
     },
     groups: {
       table: "site_groups", label: "Tab Layanan", one: "tab", pk: "id", order: ["sort_order", true], defKey: "GROUPS", idFrom: "name",
@@ -228,6 +229,7 @@
     const { data, error } = await Auth.client.from(C.table).select("*").order(C.order[0], { ascending: C.order[1] });
     if (error) { $("#c-list").innerHTML = `<tr><td class="empty">${esc(dbError(error))}</td></tr>`; $("#c-import").classList.add("hidden"); return; }
     st.rows = data || [];
+    if (C.table === "media_posts") window.MEDIA_HAS_CTA = st.rows.some(r => "cta" in r);   // kolom cta ada setelah daily-quotes.sql dijalankan
     renderList();
   }
 
@@ -432,6 +434,7 @@
         default: out[f.k] = el.value.trim();
       }
     }
+    if (C.table === "media_posts" && !window.MEDIA_HAS_CTA) delete out.cta;   // kolom cta baru ada setelah daily-quotes.sql dijalankan
     return out;
   }
 

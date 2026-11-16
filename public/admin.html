@@ -49,6 +49,7 @@
       <button role="tab" data-tab="docs" aria-selected="false" type="button">Dokumen</button>
       <button role="tab" data-tab="faq" aria-selected="false" type="button">FAQ</button>
       <button role="tab" data-tab="games" aria-selected="false" type="button">SHEGAMES</button>
+      <button role="tab" data-tab="dq" aria-selected="false" type="button">Daily Quotes</button>
       <button role="tab" data-tab="set" aria-selected="false" type="button">Pengaturan</button>
     </div>
 
@@ -83,6 +84,7 @@
     <div id="settings-panel" class="hidden"></div>
     <div id="kplh-panel" class="hidden"></div>
     <div id="games-panel" class="hidden"></div>
+    <div id="dq-panel" class="hidden"></div>
 
     <div id="app" class="hidden">
       <div class="stats" role="group" aria-label="Filter berdasarkan status">
@@ -123,6 +125,8 @@
 <script src="assets/games/games-cw.js"></script>
 <script src="assets/games/games-admin.js"></script>
 <script src="assets/games/games-admin2.js"></script>
+<script src="assets/dq/dq-render.js"></script>
+<script src="assets/dq/dq-admin.js"></script>
 <script>
 (function(){
   const $ = s => document.querySelector(s);
@@ -218,10 +222,12 @@
     $("#settings-panel").classList.toggle("hidden", which !== "set");
     $("#kplh-panel").classList.toggle("hidden", which !== "kplh");
     $("#games-panel").classList.toggle("hidden", which !== "games");
+    $("#dq-panel").classList.toggle("hidden", which !== "dq");
     if(which === "stat") loadStats();
     else if(which === "set") AdminContent.showSettings();
     else if(which === "kplh") AdminContent.showKplh();
     else if(which === "games") AdminGames.show();
+    else if(which === "dq") AdminDQ.show();
     else if(CONTENT_TABS.includes(which)) AdminContent.show(which);
   }
   $("#atabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if(b) showTab(b.dataset.tab); });
@@ -269,6 +275,7 @@
     $("#gate").classList.add("hidden");
     $("#atabs").classList.remove("hidden");
     showTab("acc");
+    AdminDQ.badge();
     await load();
   }
   init();

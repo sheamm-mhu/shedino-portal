@@ -1,5 +1,5 @@
 """Membuat berkas contoh untuk uji SHEGAMES (dokumen soal, daftar kata, gambar).
-Kebutuhan: pip install python-docx openpyxl reportlab pillow
+Kebutuhan: pip install python-docx openpyxl reportlab pillow scikit-image
 Pemakaian: python buat_berkas_uji.py [folder tujuan]   (bawaan: folder 'fixtures' di sebelah berkas ini)"""
 import os, sys
 import docx, openpyxl
@@ -116,4 +116,11 @@ open(P('img', 'rusak.png'), 'wb').write(b'bukan gambar sungguhan, hanya teks')
 sc = Image.new('RGB', (2000, 1200), (203, 213, 225)); dr = ImageDraw.Draw(sc)
 dr.rectangle([0, 760, 2000, 1200], fill=(148, 163, 184)); dr.rectangle([300, 200, 700, 760], fill=(217, 119, 6)); dr.rectangle([1300, 300, 1500, 760], fill=(220, 38, 38)); dr.ellipse([900, 900, 1300, 1100], fill=(51, 65, 85))
 sc.save(P('img', 'area-baru.jpg'), 'JPEG', quality=88)
+# foto orang untuk uji Daily Quotes: foto astronaut domain publik (NASA) dari pustaka scikit-image
+try:
+    import skimage.data
+    im = Image.fromarray(skimage.data.astronaut()); im.save(P('img', 'orang.png'))
+    rgba = im.convert('RGBA'); mask = Image.new('L', im.size, 0); ImageDraw.Draw(mask).ellipse([60, 10, 460, 505], fill=255); rgba.putalpha(mask); rgba.save(P('img', 'orang-transparan.png'))
+except ImportError:
+    print('scikit-image tidak terpasang: uji Daily Quotes yang memakai foto orang akan dilewati (pip install scikit-image)')
 print('Berkas uji dibuat di', OUT)

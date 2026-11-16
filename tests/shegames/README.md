@@ -44,3 +44,13 @@ Uji `e2e*` membutuhkan PostgREST, Playwright, axe, dan server statis seperti yan
 |---|---|
 | `t7_dasbor_manajemen.py` | angka dasbor di database: KPI, per level, per departemen, topik sering salah, peringkat dengan NIK, periode minggu, bulan, semua waktu, hanya admin (21 pemeriksaan) |
 | `e2e9_admin_dasbor_ekspor.py` | dasbor di browser: angka, pergantian periode, ekspor Excel 5 lembar (dibuka ulang dengan openpyxl), cetak, aksesibilitas, ponsel (20 pemeriksaan) |
+
+## Uji Daily Quotes (tahap 6)
+
+| Berkas | Isi |
+|---|---|
+| `t8_daily_quotes.py` | skema, validasi templat, hak akses, pengiriman terbuka dan pagarnya, peninjauan admin, kebijakan penyimpanan (58 pemeriksaan) |
+| `e2e10_dq_publik_pembuat_galeri.py` | tombol di artikel, pembuat poster dengan foto orang sungguhan (pemeriksaan piksel pada gambar hasil), kirim, galeri, ponsel, aksesibilitas (42 pemeriksaan) |
+| `e2e11_dq_admin.py` | antrean persetujuan, editor templat seret-lepas, pengaturan, pilihan tombol artikel, ponsel (42 pemeriksaan) |
+
+Uji e2e10 dan e2e11 memakai foto astronaut domain publik NASA dari pustaka scikit-image (dibuat oleh `buat_berkas_uji.py`) dan Chromium dengan `--use-angle=swiftshader` agar penghapus latar berjalan tanpa GPU.

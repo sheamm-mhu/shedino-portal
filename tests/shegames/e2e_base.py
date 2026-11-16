@@ -22,6 +22,7 @@ STUB = STUB[STUB.index('STUB = """') + 10: STUB.index('"""', STUB.index('STUB = 
 db.execute(STUB)
 db.execute(open(f'{ROOT}/supabase/schema.sql', encoding='utf-8').read())
 db.execute(open(f'{ROOT}/supabase/games.sql', encoding='utf-8').read())
+db.execute(open(f'{ROOT}/supabase/daily-quotes.sql', encoding='utf-8').read())
 def Q(q, p=None):
     cur = db.execute(q, p)
     try: return cur.fetchall()
@@ -88,6 +89,9 @@ def storage_handler(route, request):
                     if data.endswith(b'\r\n'): data = data[:-2]
         key = u.path.split('/storage/v1/object/', 1)[1]
         STORE[key] = (data, mime)
+        if '/' in key:   # seperti Supabase asli: berkas tercatat di storage.objects
+            bkt, nm = key.split('/', 1)
+            db.execute("insert into storage.objects(bucket_id,name) values (%s,%s)", (bkt, nm))
         return route.fulfill(status=200, headers=CORS, content_type='application/json', body=json.dumps({'Key': key}))
     if request.method == 'GET' and '/storage/v1/object/public/' in u.path:
         key = u.path.split('/storage/v1/object/public/', 1)[1]

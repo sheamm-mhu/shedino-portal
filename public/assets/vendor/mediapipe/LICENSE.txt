@@ -1,0 +1,3 @@
+MediaPipe Selfie Segmentation (paket npm @mediapipe/selfie_segmentation) oleh Google.
+Dilisensikan di bawah Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0
+Berkas di folder ini tidak diubah. Dipakai untuk menghapus latar foto di browser pengguna (foto tidak dikirim ke server mana pun).

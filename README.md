@@ -57,6 +57,8 @@ Foto sendiri: buat folder `public/media/` lalu taruh gambar di sana.
 ## SHEGAMES (permainan K3) - sedang dibangun bertahap
 Tahap 1 (data, skor, peringkat di server) ada di `supabase/games.sql` (`supabase/GAMES-TAHAP1.md`). Tahap 2 menambah halaman `shegames.html`: lobi, level 3 pilihan ganda, dan peringkat mingguan, bulanan, serta semua waktu (`supabase/GAMES-TAHAP2.md`). Tahap 3 menambah tab **SHEGAMES** di panel Admin: pengaturan, bank soal dengan impor dokumen (.docx, .xlsx, .csv, .pdf, .txt), peserta dan skor (`supabase/GAMES-TAHAP3.md`). Tahap 4 melengkapi keempat level (teka-teki silang, tebak rambu, pilihan ganda, tebak bahaya) beserta pengelolaannya di Admin: pengaturan per level, impor kata, pembuat kotak TTS otomatis, unggah rambu massal, dan editor titik bahaya (`supabase/GAMES-TAHAP4.md`). Tahap 5 menambah **Dasbor** manajemen di Admin dengan ekspor Excel dan tampilan cetak (`supabase/GAMES-TAHAP5.md`).
 
+**Daily Quotes**: tombol "Buat Daily Quotes" di artikel membuka pembuat poster (ganti foto dan kata-kata pada templat, latar foto dihapus otomatis di browser), dengan galeri dan persetujuan admin; templat bisa diganti dari Admin. Pasang dengan menjalankan `supabase/daily-quotes.sql`; panduan di `supabase/DAILY-QUOTES.md`.
+
 ## Bagikan artikel ke WhatsApp
 - Di halaman artikel ada tombol **Bagikan ke WhatsApp**. Di ponsel yang mendukung (Android Chrome, iPhone Safari), tombol ini mengirim **gambar sampul beserta keterangannya** (judul tebal, tanggal, kutipan, tagar, tautan), mirip kiriman di Saluran WhatsApp. Di perangkat lain, tombol membuka WhatsApp dengan teks keterangan dan tautan.
 - **Salin keterangan** menyalin teks yang sama untuk ditempel sendiri (misalnya di Saluran WhatsApp). **Salin tautan** menyalin tautan pratinjau.

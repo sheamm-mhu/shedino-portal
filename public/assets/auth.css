@@ -336,3 +336,25 @@ tr.ga-del td:first-child{text-decoration:line-through;color:var(--slate)}
   .ga-scroll{overflow:visible!important}
   .ga-dcard{break-inside:avoid}
 }
+
+/* ===== Daily Quotes di admin ===== */
+.dq-adm .ga-card img{height:auto;aspect-ratio:4/5;object-fit:cover;background:#E2E8F0}
+.dq-adm .ga-card img[data-zoom]{cursor:zoom-in}
+.dq-adm .ga-cards{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.dq-adm .btn.teal{background:#0F766E}.dq-adm .btn.teal:hover{background:#115E59}
+.dq-ed{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,1fr);gap:1.2rem;align-items:start}
+.dq-ed-main,.dq-ed-side{min-width:0}
+.dq-ed-stage{position:relative;width:100%;max-width:560px;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;background:#E2E8F0;user-select:none;-webkit-user-select:none}
+.dq-ed-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.dq-bx{position:absolute;box-sizing:border-box;border:2px solid #0D9488;background:rgba(13,148,136,.14);cursor:move;touch-action:none}
+.dq-bx.photo{border-color:#2563EB;background:rgba(37,99,235,.14)}
+.dq-bx.on{z-index:3;border-width:3px;box-shadow:0 0 0 2px #fff;background:rgba(225,29,72,.14);border-color:#E11D48}
+.dq-bx:focus-visible{outline:3px solid #E11D48;outline-offset:2px}
+.dq-bl{position:absolute;left:0;top:0;max-width:100%;padding:0 .3rem;background:rgba(15,23,42,.85);color:#fff;font-size:.68rem;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.dq-h{position:absolute;right:-2px;bottom:-2px;width:18px;height:18px;background:#fff;border:2px solid #0F172A;border-radius:4px;cursor:nwse-resize;touch-action:none}
+.dq-ed-side label{display:block;font-weight:600;margin-bottom:.6rem}
+.dq-ed-side input:not([type=checkbox]):not([type=file]):not([type=color]),.dq-ed-side select{display:block;width:100%;margin-top:.3rem;padding:.55rem .7rem;border:1.5px solid var(--line);border-radius:10px;box-sizing:border-box;background:#fff;font-weight:400}
+.dq-ed-side input[type=color]{display:block;width:100%;height:44px;margin-top:.3rem;border:1.5px solid var(--line);border-radius:10px;padding:2px;background:#fff}
+.dq-ed-side input[type=file]{max-width:100%;margin-top:.3rem}
+.dq-geo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+@media (max-width:900px){.dq-ed{grid-template-columns:minmax(0,1fr)}}

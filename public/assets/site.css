@@ -752,3 +752,8 @@ dialog.lb img{max-height:90vh;max-height:90dvh}
 @supports not (font-size:1cqw){
   .kplh:not(.kplh--excel) .kplh-table th,.kplh:not(.kplh--excel) .kplh-table td{font-size:clamp(9px,1.3vw,16px)}
 }
+
+/* Tombol aksi pada artikel (Buat Daily Quotes) */
+.art-cta{display:flex;gap:.9rem 1.1rem;align-items:center;flex-wrap:wrap;margin:1.3rem 0;padding:1rem 1.2rem;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:14px}
+.art-cta span{color:var(--slate,#475569);flex:1 1 240px}
+.btn.cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:1.05rem;padding:.85rem 1.6rem}

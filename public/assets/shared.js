@@ -260,7 +260,7 @@
   function navItems() {
     return [
       { k: "layanan", t: "Layanan", h: "layanan.html" },
-      { k: "media", t: "Media", children: mediaTypes().map(t => ({ k: t.id, t: t.label, h: "media.html?tab=" + encodeURIComponent(t.id) })) },
+      { k: "media", t: "Media", children: mediaTypes().map(t => ({ k: t.id, t: t.label, h: "media.html?tab=" + encodeURIComponent(t.id) })).concat([{ k: "dailyquotes", t: "Daily Quotes", h: "daily-quotes.html" }]) },
       { k: "shegames", t: "SHEGAMES", h: "shegames.html" },
       { k: "dokumen", t: "Dokumen", h: "index.html#dokumen" },
       { k: "tentang", t: "Tentang", h: "index.html#tentang" },
