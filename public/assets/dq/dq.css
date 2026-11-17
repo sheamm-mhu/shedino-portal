@@ -12,6 +12,10 @@
 .dq-stage canvas{display:block;width:100%;height:auto;border-radius:16px;box-shadow:0 18px 50px rgba(15,23,42,.28);background:#0F172A;touch-action:pan-y}
 .dq-stage.drag canvas{touch-action:none;cursor:grab}
 .dq-stage.drag canvas:active{cursor:grabbing}
+.dq-stage.paint canvas{touch-action:none;cursor:none}
+.dq-ring{position:absolute;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1.5px #0F172A;pointer-events:none;z-index:2}
+.dq-tools{display:grid;gap:.7rem;margin-top:.3rem;padding-top:.8rem;border-top:1px dashed var(--dq-line)}
+.dq-tools[hidden]{display:none}
 .dq-note{margin:.6rem 0 0;font-size:.9rem;color:var(--dq-slate)}
 .dq-steps{list-style:none;margin:0;padding:0;display:grid;gap:1rem;counter-reset:s}
 .dq-step{background:#fff;border:1.5px solid var(--dq-line);border-radius:16px;padding:1.1rem 1.2rem;counter-increment:s}
@@ -40,7 +44,7 @@
 .dq-mv{display:flex;gap:.5rem;flex-wrap:wrap}
 .dq-mv button,.dq-btn2{min-height:44px;min-width:44px;padding:.4rem .9rem;border:1.5px solid var(--dq-ink);border-radius:10px;background:#fff;font:inherit;font-weight:600;cursor:pointer;color:var(--dq-ink)}
 .dq-mv button:hover,.dq-btn2:hover{background:#F1F5F9}
-.dq-btn2[aria-pressed="true"]{background:var(--dq-ink);color:#fff}
+.dq-btn2[aria-pressed="true"],.dq-mv .dq-btn2[aria-pressed="true"]:hover{background:var(--dq-ink);color:#fff}
 .dq-status{font-size:.92rem;color:var(--dq-slate);margin:.5rem 0 0}
 .dq-acts{display:flex;gap:.7rem;flex-wrap:wrap}
 .dq-acts .btn.teal{background:var(--dq-teal)}
@@ -64,6 +68,6 @@ dialog.dq-dlg{max-width:min(560px,94vw);width:100%;padding:1.2rem}
 .dq-dlg input[type=text]{display:block;width:100%;margin-top:.3rem;padding:.65rem .8rem;border:1.5px solid #94A3B8;border-radius:10px;font:inherit;font-size:max(1rem,16px);box-sizing:border-box}
 @media (max-width:860px){
   .dq-create{grid-template-columns:minmax(0,1fr)}
-  .dq-stage{position:static;max-width:520px;margin:0 auto}
+  .dq-stage{position:relative;max-width:520px;margin:0 auto}
 }
 @media (prefers-reduced-motion:reduce){.dq-card{transition:none}}

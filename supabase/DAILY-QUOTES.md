@@ -5,7 +5,7 @@
 2. Pengunjung (tanpa akun pun bisa) memilih templat, mengunggah foto, mengisi nama, jabatan, dan kata-kata, lalu **mengunduh** gambarnya atau **mengirim** agar tayang di galeri.
 3. Kiriman masuk antrean. **Tidak ada yang tayang di galeri sebelum Anda setujui** di Admin, tab Daily Quotes.
 
-Latar foto dihapus otomatis **di browser pengunjung** (MediaPipe, gratis, Apache 2.0). Foto tidak dikirim ke server mana pun kecuali poster jadi yang sengaja dikirim. Pertama kali dipakai, browser memuat mesinnya sekitar 6 MB; berikutnya lebih cepat.
+Latar foto dihapus otomatis **di browser pengunjung** (MediaPipe, gratis, Apache 2.0). Penghapusan dilakukan dua tahap (orang dipotong kasar, lalu dipotong ulang pada area sekitarnya agar tepinya tajam), serpihan terpisah dibuang, lubang kecil ditutup, dan tepi dirapikan mengikuti garis tepi foto asli. Foto tidak dikirim ke server mana pun kecuali poster jadi yang sengaja dikirim. Pertama kali dipakai, browser memuat mesinnya sekitar 6 MB; berikutnya lebih cepat.
 
 ## Cara memasang
 1. Supabase, **SQL Editor**: jalankan seluruh `supabase/daily-quotes.sql` (setelah `schema.sql`). Aman diulang. Ini membuat tabel templat, kiriman, dan pengaturan, bucket penyimpanan `dq-submissions`, kolom `cta` pada artikel, dan satu templat contoh.
@@ -13,6 +13,9 @@ Latar foto dihapus otomatis **di browser pengunjung** (MediaPipe, gratis, Apache
 3. Tunggu Vercel **Ready**, lalu muat ulang dengan Ctrl+Shift+R.
 
 Tanpa langkah 1, halaman pembuat menampilkan pesan bahwa fitur belum dipasang, dan fitur lain tetap normal.
+
+## Ajakan di beranda
+Di bagian **Kabar SHE** pada beranda, tepat di bawah judulnya, tampil ajakan "Apakah Anda ingin wajah Anda tampil di sini?" lengkap dengan tombol **Buat Daily Quotes** yang langsung membuka pembuat poster. Ajakan ini hanya tampil bila `daily-quotes.sql` sudah dijalankan dan fitur sedang aktif (Admin, Daily Quotes, Pengaturan); bila fitur dimatikan, ajakannya otomatis hilang.
 
 ## Tombol di artikel
 Di Admin, Kabar & Media, ubah artikelnya, lalu pilih **Tombol "Buat Daily Quotes"**:
@@ -55,8 +58,22 @@ Pengiriman terbuka untuk umum, jadi ada pagar berlapis:
 
 Batas harian per perangkat memakai token di browser, jadi hanya menahan pengguna biasa, bukan penyerang yang gigih. Untuk itu ada pengaturan wajib login.
 
+## Teks yang panjang
+Teks otomatis menyesuaikan kotaknya, dengan urutan: (1) kata utuh, huruf dikecilkan sedikit bila perlu; (2) bila ada kata yang tetap terlalu panjang (misalnya tanpa spasi), kata itu **dipatahkan per huruf dan turun ke baris berikutnya**; (3) bila tetap tidak muat, teks dipotong dan pengunjung diberi tahu. Jumlah baris yang boleh dipakai ditentukan **Maksimal baris** dan **Tinggi** kotak di editor templat; editor memberi peringatan bila tingginya tidak cukup untuk jumlah baris yang diminta. Untuk kotak "Kata-kata", gunakan Maksimal baris 3 sampai 4 dan Tinggi sekitar 7% atau lebih.
+
+## Menghaluskan bagian bawah orang
+Penggeser **Haluskan bagian bawah** (di langkah unggah foto) membuat bagian bawah orang memudar halus, sehingga tidak ada garis potong kasar di atas kotak keterangan. Bawaannya 35; 0 berarti tanpa pemudaran.
+
+## Merapikan hasil potong latar
+Bila masih ada sisa latar atau bagian orang yang ikut terpotong, pengunjung punya tiga alat di bawah foto:
+- **Rapikan tepi** (penggeser): ke kanan merapatkan tepi (membuang pinggiran latar), ke kiri melebarkan (bila orang ikut terpotong).
+- **Hapus sisa** (kuas): gosok bagian latar yang masih tersisa pada pratinjau.
+- **Pulihkan** (kuas): gosok bagian orang yang ikut terhapus; isi foto asli di area itu dikembalikan.
+- **Batalkan coretan** menghapus semua coretan kuas sekaligus. Ukuran kuas bisa diatur; lingkaran kuas terlihat mengikuti penunjuk.
+Di ponsel, pilih alatnya dulu (supaya layar tidak ikut bergeser saat menggosok). Foto PNG yang sudah tanpa latar juga bisa dirapikan dengan alat yang sama.
+
 ## Batasan yang perlu diketahui
-- Hasil potong latar bagus untuk foto potret, tetapi tidak sempurna pada latar ramai, rambut tipis, atau orang yang tidak jelas terlihat. Bila orang tidak terdeteksi, pengunjung diberi tahu dan foto dipakai utuh di dalam bingkai. Pengunjung juga bisa mengunggah PNG tanpa latar yang dipakai apa adanya.
+- Hasil potong latar bagus untuk foto potret biasa, tetapi tidak sempurna pada latar ramai, helai rambut halus, atau benda yang menempel pada orang (misalnya tiang atau peralatan); untuk itu ada alat perapi di atas. Model yang dipakai kecil agar muat di situs dan jalan di ponsel, jadi bukan setajam layanan potong latar berbayar. Bila orang tidak terdeteksi, pengunjung diberi tahu dan foto dipakai utuh di dalam bingkai. Pengunjung juga bisa mengunggah PNG tanpa latar yang dipakai apa adanya.
 - Perangkat lama atau murah bisa lambat saat menghapus latar (beberapa detik).
 - Font Bricolage Grotesque dan Figtree dimuat dari Google Fonts; tanpa internet, poster memakai font cadangan.
 - Pengujian memakai Chromium dan Postgres lokal. Belum diuji di Supabase asli, iPhone, atau Android sungguhan.

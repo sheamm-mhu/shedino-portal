@@ -757,3 +757,11 @@ dialog.lb img{max-height:90vh;max-height:90dvh}
 .art-cta{display:flex;gap:.9rem 1.1rem;align-items:center;flex-wrap:wrap;margin:1.3rem 0;padding:1rem 1.2rem;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:14px}
 .art-cta span{color:var(--slate,#475569);flex:1 1 240px}
 .btn.cta{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:1.05rem;padding:.85rem 1.6rem}
+
+/* Ajakan Daily Quotes di bawah judul Kabar SHE */
+.dq-promo{display:flex;align-items:center;justify-content:space-between;gap:1rem 1.5rem;flex-wrap:wrap;margin:-.8rem 0 1.6rem;padding:1.05rem 1.3rem;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:16px}
+.dq-promo[hidden]{display:none}
+.dq-promo>div{flex:1 1 320px;min-width:0}
+.dq-promo strong{display:block;font-family:var(--display);font-size:1.2rem;line-height:1.25;color:var(--ink,#0F172A)}
+.dq-promo span{display:block;margin-top:.25rem;color:var(--slate,#475569)}
+.dq-promo .btn{flex:none}

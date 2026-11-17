@@ -186,15 +186,18 @@
           <label>Contoh teks (tampil di pratinjau)<input id="dq-f-sample" maxlength="300" value="${esc(m.sample)}"></label>
           <div class="frow">${sel("dq-f-font", "Huruf", [["display", "Judul tebal (Bricolage)"], ["body", "Teks biasa (Figtree)"], ["serif", "Serif"]], m.font)}${sel("dq-f-weight", "Ketebalan", [["400", "400 biasa"], ["500", "500"], ["600", "600"], ["700", "700 tebal"], ["800", "800"], ["900", "900"]], m.weight)}</div>
           <div class="frow">${numIn("dq-f-size", "Ukuran (% tinggi poster)", m.size, 0.5, 30, 0.1)}${numIn("dq-f-ml", "Maksimal baris", m.maxlines, 1, 8, 1)}</div>
+          <p class="fhelp" id="dq-f-hint" role="status"></p>
           <div class="frow"><label>Warna<input type="color" id="dq-f-color" value="${esc(m.color)}"></label>${sel("dq-f-align", "Perataan", [["left", "Kiri"], ["center", "Tengah"], ["right", "Kanan"]], m.align)}</div>
           <label class="fchk"><input type="checkbox" id="dq-f-it"${m.italic ? " checked" : ""}> Miring</label><label class="fchk"><input type="checkbox" id="dq-f-up"${m.upper ? " checked" : ""}> HURUF BESAR semua</label><label class="fchk"><input type="checkbox" id="dq-f-sh"${m.shadow ? " checked" : ""}> Bayangan teks</label>
           ${geo}<button type="button" class="btn danger sm" id="dq-f-del">Hapus kotak teks ini</button></fieldset>`;
       }
       $("#dq-e-form").innerHTML = h;
-      const bind = (id, fn) => { const el = $("#" + id); if (el) el.addEventListener("input", () => { fn(el); syncBox(); later(); }); };
+      const hint = () => { const el = $("#dq-f-hint"); if (!el || s === "photo") return; const per = m.size * 1.22, fit = Math.max(1, Math.floor(m.h * 1.03 / per)); el.textContent = m.maxlines * per > m.h * 1.03 ? `Tinggi kotak (${m.h}%) hanya muat sekitar ${fit} baris pada ukuran huruf ${m.size}%, padahal Maksimal baris ${m.maxlines}. Naikkan Tinggi atau kecilkan Ukuran agar semua baris terbaca; bila tidak, teks akan dikecilkan otomatis.` : ""; };
+      const bind = (id, fn) => { const el = $("#" + id); if (el) el.addEventListener("input", () => { fn(el); syncBox(); later(); hint(); }); };
       const num = (el, a, b, d) => { const v = parseFloat(el.value); return Number.isFinite(v) ? clamp(v, a, b) : d; };
       bind("dq-g-x", el => { m.x = num(el, 0, 100, m.x); }); bind("dq-g-y", el => { m.y = num(el, 0, 100, m.y); }); bind("dq-g-w", el => { m.w = num(el, 1, 100, m.w); }); bind("dq-g-h", el => { m.h = num(el, 1, 100, m.h); });
       if (s !== "photo") {
+        hint();
         bind("dq-f-label", el => { m.label = el.value || "Teks"; paintList(); const b = $(`.dq-bx[data-s="${s}"] .dq-bl`); if (b) b.textContent = m.label; });
         bind("dq-f-sample", el => { m.sample = el.value; }); bind("dq-f-font", el => { m.font = el.value; }); bind("dq-f-weight", el => { m.weight = el.value; }); bind("dq-f-size", el => { m.size = num(el, 0.5, 30, m.size); });
         bind("dq-f-ml", el => { m.maxlines = Math.round(num(el, 1, 8, m.maxlines)); }); bind("dq-f-color", el => { m.color = el.value.toUpperCase(); }); bind("dq-f-align", el => { m.align = el.value; });

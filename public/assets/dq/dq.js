@@ -5,8 +5,9 @@
   const { $, $$, esc, dlgOpen, dlgClose } = window.SH, DQ = window.DQ;
   window.SH.setNavCurrent && window.SH.setNavCurrent("media");
   const app = $("#dq-app");
+  Object.defineProperty(window, "__dq", { value: { get photo() { return photo; }, get cutOK() { return cutOK; } } });   // pembantu pengujian (hanya baca)
   let SET = null, TPLS = [], cur = null, view = location.hash === "#galeri" ? "galeri" : "buat";
-  const ASSETS = {}; let orig = null, photo = null, cutOK = false, autoCut = true, person = { zoom: 1, dx: 0, dy: 0 }, texts = {}, dragOn = !(window.matchMedia && matchMedia("(pointer: coarse)").matches), raf = 0, busy = false;
+  const ASSETS = {}; let orig = null, photo = null, cutOK = false, autoCut = true, person = { zoom: 1, dx: 0, dy: 0, fade: 35 }, texts = {}, tool = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "none" : "move", brushPx = 26, edgeV = 0, raf = 0, busy = false;
   const MAXLEN = { name: 80, job: 100, quote: 400, date: 30 };
 
   function msg(kind, text) { const m = $("#dq-msg"); if (!m) return; if (!text) { m.className = "dq-msg"; m.textContent = ""; return; } m.className = "dq-msg show " + kind; m.textContent = text; }
@@ -56,7 +57,7 @@
     const t = cur;
     t.fields.forEach(f => { if (texts[f.key] == null) texts[f.key] = f.key === "date" ? DQ.todayText() : ""; });
     app.innerHTML = `<div class="dq-create">
-      <div class="dq-stage${dragOn ? " drag" : ""}" id="dq-stage"><canvas id="dq-cv" width="540" height="${Math.round(540 * t.h / t.w)}" role="img" aria-label="Pratinjau poster Daily Quotes"></canvas>
+      <div class="dq-stage${toolCls()}" id="dq-stage"><canvas id="dq-cv" width="540" height="${Math.round(540 * t.h / t.w)}" role="img" aria-label="Pratinjau poster Daily Quotes"></canvas><div class="dq-ring" id="dq-ring" hidden></div>
         <p class="dq-note" id="dq-pnote">Teks contoh akan hilang bila kolomnya tidak diisi.</p></div>
       <ol class="dq-steps">
         ${TPLS.length > 1 ? `<li class="dq-step"><h2>Pilih templat</h2><div class="dq-tpls">${TPLS.map(x => `<button type="button" class="dq-tpl" data-t="${esc(x.id)}" aria-pressed="${x.id === t.id}"><img src="${esc(x.back_image)}" alt="" loading="lazy"><span>${esc(x.name)}</span></button>`).join("")}</div></li>` : ""}
@@ -66,7 +67,16 @@
           <p class="dq-status" id="dq-st" role="status" aria-live="polite">${photo ? "" : "Gunakan foto yang menampakkan wajah dan badan dengan jelas. Foto diproses di perangkat Anda dan tidak dikirim ke mana pun kecuali Anda memilih Kirim."}</p>
           <div class="dq-ctl" id="dq-ctl"${photo ? "" : " hidden"}>
             <div class="dq-zoom"><label for="dq-zoom" style="margin:0">Ukuran</label><input type="range" id="dq-zoom" min="0.5" max="2.5" step="0.05" value="${person.zoom}"></div>
-            <div class="dq-mv" role="group" aria-label="Geser foto"><button type="button" data-mv="l" aria-label="Geser ke kiri">&larr;</button><button type="button" data-mv="u" aria-label="Geser ke atas">&uarr;</button><button type="button" data-mv="d" aria-label="Geser ke bawah">&darr;</button><button type="button" data-mv="r" aria-label="Geser ke kanan">&rarr;</button><button type="button" id="dq-center" class="dq-btn2">Pusatkan</button><button type="button" id="dq-drag" class="dq-btn2" aria-pressed="${dragOn}">Geser dengan jari atau mouse</button></div>
+            <div class="dq-zoom"><label for="dq-fade" style="margin:0">Haluskan bagian bawah</label><input type="range" id="dq-fade" min="0" max="100" step="5" value="${person.fade}" aria-describedby="dq-fade-h"></div>
+            <p class="dq-status" id="dq-fade-h">Membuat bagian bawah orang memudar halus, supaya tidak ada garis potong yang kasar di atas kotak keterangan.</p>
+            <div class="dq-mv" role="group" aria-label="Geser foto"><button type="button" data-mv="l" aria-label="Geser ke kiri">&larr;</button><button type="button" data-mv="u" aria-label="Geser ke atas">&uarr;</button><button type="button" data-mv="d" aria-label="Geser ke bawah">&darr;</button><button type="button" data-mv="r" aria-label="Geser ke kanan">&rarr;</button><button type="button" id="dq-center" class="dq-btn2">Pusatkan</button></div>
+            <div class="dq-tools" id="dq-tools"${photo && photo.dq && cutOK ? "" : " hidden"}>
+              <div class="dq-zoom"><label for="dq-edge" style="margin:0">Rapikan tepi</label><input type="range" id="dq-edge" min="-3" max="3" step="0.5" value="${edgeV}" aria-describedby="dq-edge-h"></div>
+              <p class="dq-status" id="dq-edge-h">Geser ke kanan bila masih ada sisa latar di pinggir orang, ke kiri bila bagian orang ikut terpotong.</p>
+              <div class="dq-mv" role="group" aria-label="Alat">${[["move", "Geser foto"], ["erase", "Hapus sisa"], ["restore", "Pulihkan"]].map(t => `<button type="button" class="dq-btn2" data-tool="${t[0]}" aria-pressed="${tool === t[0]}">${t[1]}</button>`).join("")}<button type="button" class="dq-btn2" id="dq-undo">Batalkan coretan</button></div>
+              <div class="dq-zoom"><label for="dq-brush" style="margin:0">Ukuran kuas</label><input type="range" id="dq-brush" min="8" max="90" step="2" value="${brushPx}"></div>
+              <p class="dq-status">Hapus sisa: gosok bagian latar yang masih tersisa pada pratinjau. Pulihkan: gosok bagian orang yang ikut terhapus. Di ponsel, pilih alatnya dulu agar layar tidak ikut bergeser.</p>
+            </div>
           </div></li>
         <li class="dq-step"><h2>Isi teks</h2>${t.fields.map(f => { const mx = MAXLEN[f.key] || 120, multi = f.maxlines > 1, v = esc(texts[f.key] || ""), ph = esc(f.sample || ""); return `<label>${esc(f.label)}${multi ? `<textarea data-k="${esc(f.key)}" maxlength="${mx}" rows="3" placeholder="${ph}">${v}</textarea>` : `<input type="text" data-k="${esc(f.key)}" maxlength="${mx}" value="${v}" placeholder="${ph}" autocomplete="off">`}<span class="dq-count" data-c="${esc(f.key)}"></span></label>`; }).join("")}</li>
         <li class="dq-step"><h2>Selesai</h2><div class="dq-acts"><button type="button" class="btn" id="dq-dl">Unduh gambar</button><button type="button" class="btn teal" id="dq-send">Kirim agar tayang di galeri</button></div>
@@ -74,11 +84,12 @@
       </ol></div>`;
     wireCreator(); await redraw();
   }
+  const toolCls = () => tool === "move" ? " drag" : (tool === "erase" || tool === "restore") ? " paint" : "";
   function counts() { cur.fields.forEach(f => { const c = $(`[data-c="${f.key}"]`); if (c) c.textContent = `${(texts[f.key] || "").length}/${MAXLEN[f.key] || 120}`; }); }
   async function redraw() {
     const cv = $("#dq-cv"); if (!cv) return; const t = cur;
     try { const a = await assetsFor(t); await DQ.ensureFonts(); if (cv !== $("#dq-cv")) return;
-      const r = DQ.render(cv, t, a, { person: photo ? { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy } : null, texts }, { width: Math.min(t.w, 720), placeholder: true, samples: true });
+      const r = DQ.render(cv, t, a, { person: photo ? { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade } : null, texts }, { width: Math.min(t.w, 720), placeholder: true, samples: true });
       const nt = $("#dq-pnote"); if (nt) nt.textContent = r.cut.length ? "Teks terlalu panjang dan dipotong. Perpendek agar semua terbaca." : "Teks contoh akan hilang bila kolomnya tidak diisi.";
     } catch (e) { msg("err", "Templat tidak dapat ditampilkan: " + friendly(e)); }
   }
@@ -89,28 +100,46 @@
     $("#dq-cut").addEventListener("change", e => { autoCut = e.target.checked; if (orig) onFile(null); });
     $("#dq-zoom").addEventListener("input", e => { person.zoom = +e.target.value; schedule(); });
     $(".dq-mv").addEventListener("click", e => { const b = e.target.closest("[data-mv]"); if (!b) return; const s = 0.03; ({ l: () => person.dx -= s, r: () => person.dx += s, u: () => person.dy -= s, d: () => person.dy += s })[b.dataset.mv](); schedule(); });
-    $("#dq-center").addEventListener("click", () => { person = { zoom: 1, dx: 0, dy: 0 }; $("#dq-zoom").value = 1; schedule(); });
-    $("#dq-drag").addEventListener("click", e => { dragOn = !dragOn; e.currentTarget.setAttribute("aria-pressed", dragOn); $("#dq-stage").classList.toggle("drag", dragOn); });
+    $("#dq-fade").addEventListener("input", e => { person.fade = +e.target.value; schedule(); });
+    $("#dq-center").addEventListener("click", () => { person = { zoom: 1, dx: 0, dy: 0, fade: person.fade }; $("#dq-zoom").value = 1; schedule(); });
+    $$("[data-tool]").forEach(b => b.addEventListener("click", () => { tool = tool === b.dataset.tool ? "none" : b.dataset.tool; $$("[data-tool]").forEach(x => x.setAttribute("aria-pressed", x.dataset.tool === tool)); $("#dq-stage").className = "dq-stage" + toolCls(); }));
+    $("#dq-edge").addEventListener("input", e => { edgeV = +e.target.value; if (photo && photo.dq) { DQ.setEdge(photo, edgeV); schedule(); } });
+    $("#dq-brush").addEventListener("input", e => { brushPx = +e.target.value; });
+    $("#dq-undo").addEventListener("click", () => { if (photo && photo.dq) { DQ.resetBrush(photo); schedule(); } });
     $$("#dq-app [data-k]").forEach(el => el.addEventListener("input", () => { texts[el.dataset.k] = el.value; counts(); schedule(); })); counts();
-    const cv = $("#dq-cv"); let drag = null;
-    cv.addEventListener("pointerdown", e => { if (!dragOn || !photo) return; drag = { x: e.clientX, y: e.clientY, dx: person.dx, dy: person.dy }; cv.setPointerCapture(e.pointerId); });
-    cv.addEventListener("pointermove", e => { if (!drag) return; const r = cv.getBoundingClientRect(), sw = cur.photo.w / 100 * r.width, sh = cur.photo.h / 100 * r.height; person.dx = DQ.clamp(drag.dx + (e.clientX - drag.x) / sw, -2, 2); person.dy = DQ.clamp(drag.dy + (e.clientY - drag.y) / sh, -2, 2); schedule(); });
-    const end = () => { drag = null; }; cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+    const cv = $("#dq-cv"), ring = $("#dq-ring"); let drag = null, last = null;
+    const paintTool = () => (tool === "erase" || tool === "restore") && photo && photo.dq && cutOK;
+    const sp = e => { const r = cv.getBoundingClientRect(), k = cv.width / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k, k, r }; };
+    const stroke = (a, b) => {
+      const m = DQ.personMap(cur, { src: photo, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade }, cv.width, cv.height), rad = Math.max(2, brushPx * a.k / m.s), dist = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(dist / Math.max(1, brushPx * a.k / 3)));
+      for (let i = 0; i <= n; i++) DQ.paint(photo, m.px(a.x + (b.x - a.x) * i / n), m.py(a.y + (b.y - a.y) * i / n), rad, tool);
+      schedule();
+    };
+    cv.addEventListener("pointerdown", e => {
+      if (paintTool()) { last = sp(e); stroke(last, last); drag = { paint: true }; cv.setPointerCapture(e.pointerId); return; }
+      if (tool !== "move" || !photo) return; drag = { x: e.clientX, y: e.clientY, dx: person.dx, dy: person.dy }; cv.setPointerCapture(e.pointerId);
+    });
+    cv.addEventListener("pointermove", e => {
+      if (paintTool()) { const q = sp(e), r = q.r; ring.hidden = false; ring.style.width = ring.style.height = brushPx * 2 + "px"; ring.style.left = (e.clientX - r.left - brushPx) + "px"; ring.style.top = (e.clientY - r.top - brushPx) + "px"; if (drag && drag.paint) { stroke(last, q); last = q; } return; }
+      if (!drag || drag.paint) return; const r = cv.getBoundingClientRect(), sw = cur.photo.w / 100 * r.width, sh = cur.photo.h / 100 * r.height; person.dx = DQ.clamp(drag.dx + (e.clientX - drag.x) / sw, -2, 2); person.dy = DQ.clamp(drag.dy + (e.clientY - drag.y) / sh, -2, 2); schedule();
+    });
+    cv.addEventListener("pointerleave", () => { ring.hidden = true; });
+    const end = () => { drag = null; last = null; }; cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
     $("#dq-dl").addEventListener("click", download); $("#dq-send").addEventListener("click", openSend);
   }
   const status = t => { const s = $("#dq-st"); if (s) s.textContent = t; };
   async function onFile(file) {
     if (busy) return; busy = true; msg();
     try {
-      if (file) { status("Membaca foto..."); orig = await DQ.prepPhoto(file); person = { zoom: 1, dx: 0, dy: 0 }; const z = $("#dq-zoom"); if (z) z.value = 1; }
+      if (file) { status("Membaca foto..."); orig = await DQ.prepPhoto(file); person = { zoom: 1, dx: 0, dy: 0, fade: person.fade }; const z = $("#dq-zoom"); if (z) z.value = 1; }
       cutOK = false; photo = orig;
-      if (DQ.hasTransparency(orig)) { cutOK = true; status("Foto sudah tanpa latar, dipakai apa adanya."); }
+      if (DQ.hasTransparency(orig)) { if (!orig.dq) DQ.wrapTransparent(orig); cutOK = true; status("Foto sudah tanpa latar, dipakai apa adanya. Alat Rapikan tepi dan kuas tetap bisa dipakai."); }
       else if (autoCut) {
         status("Menghapus latar... Pertama kali agak lama karena memuat mesinnya (sekitar 6 MB), berikutnya cepat.");
-        try { photo = await DQ.cutout(orig); cutOK = true; status("Latar dihapus. Atur ukuran dan posisi foto bila perlu."); }
+        try { photo = await DQ.cutout(orig); cutOK = true; edgeV = 0; status("Latar dihapus. Bila masih ada sisa, pakai Rapikan tepi atau kuas Hapus sisa di bawah."); }
         catch (e) { photo = orig; cutOK = false; status(""); msg("warn", "Latar tidak bisa dihapus otomatis (" + friendly(e) + ") Foto dipakai utuh di dalam bingkai. Anda juga bisa mengunggah foto PNG tanpa latar."); }
       } else status("Foto dipakai utuh di dalam bingkai.");
-      const c = $("#dq-ctl"); if (c) c.hidden = false; const ft = $("#dq-file-t"); if (ft) ft.textContent = "Ganti foto";
+      const c = $("#dq-ctl"); if (c) c.hidden = false; const tl = $("#dq-tools"); if (tl) tl.hidden = !(photo && photo.dq && cutOK); const ed = $("#dq-edge"); if (ed) { ed.value = photo && photo.dq ? photo.dq.edge : 0; edgeV = +ed.value; } const ft = $("#dq-file-t"); if (ft) ft.textContent = "Ganti foto";
       await redraw();
     } catch (e) { msg("err", friendly(e)); status(""); }
     busy = false;
@@ -123,7 +152,7 @@
   }
   async function finalBlob(maxBytes) {
     await DQ.ensureFonts(); const a = await assetsFor(cur), cv = document.createElement("canvas");
-    DQ.render(cv, cur, a, { person: { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy }, texts }, { width: Math.min(cur.w, 1350) });
+    DQ.render(cv, cur, a, { person: { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade }, texts }, { width: Math.min(cur.w, 1350) });
     return DQ.toJpegBlob(cv, maxBytes);
   }
   async function download() {

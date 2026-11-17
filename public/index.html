@@ -100,6 +100,10 @@
       </div>
       <div class="acts"><div class="hs-ctl" id="kabar-ctl"><button class="hs-btn" type="button" data-dir="-1" aria-label="Geser kabar ke kiri">&lsaquo;</button><button class="hs-btn" type="button" data-dir="1" aria-label="Geser kabar ke kanan">&rsaquo;</button></div><a class="more-link" href="media.html?tab=kabar">Cari &amp; filter kabar</a></div>
     </div>
+    <div class="dq-promo" id="dq-promo" hidden>
+      <div><strong>Apakah Anda ingin wajah Anda tampil di sini?</strong><span>Buat poster Daily Safety Quotes Anda sendiri: unggah foto, tulis kata-katanya, lalu kirim agar tayang setelah disetujui admin.</span></div>
+      <a class="btn cta" id="dq-promo-btn" href="daily-quotes.html">Buat Daily Quotes</a>
+    </div>
     <div class="hs-wrap"><div class="hscroll" id="kabar-row" tabindex="0" role="region" aria-label="Semua kabar SHE, geser ke samping"></div></div>
   </div>
 </section>
@@ -350,6 +354,8 @@
     window.SH.carousel(row, $(ctlSel));
   }
   fillRow("#kabar-row", "#kabar-ctl", kabar, "Belum ada kabar.");
+  // ajakan Daily Quotes: tampil hanya bila fitur sudah dipasang di database dan sedang aktif
+  try { const r = await Auth.client.from("dq_settings").select("enabled").eq("id", 1).maybeSingle(); if (!r.error && r.data && r.data.enabled) $("#dq-promo").hidden = false; } catch (e) { /* fitur belum dipasang: ajakan tetap tersembunyi */ }
   fillRow("#edu-row", "#edu-ctl", edu, "Belum ada edukasi.");
 
   /* ===== Hari Besar, Buletin & Kampanye (jenis konten selain Kabar dan Edukasi) ===== */
