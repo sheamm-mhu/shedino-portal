@@ -14,12 +14,12 @@
 <meta property="og:title" content="SHEDINO | SHE Digital Information">
 <meta property="og:description" content="Portal informasi digital Safety, Health & Environment dalam satu pintu.">
 <meta property="og:locale" content="id_ID">
+<meta property="og:type" content="website">
+<meta property="og:image" content="assets/logo-512.png">
 <meta name="theme-color" content="#0F172A">
 <link rel="icon" type="image/png" href="assets/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/bricolage-grotesque-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
@@ -31,8 +31,8 @@
 <section class="hero" aria-labelledby="judul">
   <div class="wrap">
     <div>
-      <h1 id="judul" class="hero-in"></h1>
-      <p class="lead hero-in d2" id="hero-lead"></p>
+      <h1 id="judul" class="hero-in">Semua informasi SHE, satu pintu.</h1>
+      <p class="lead hero-in d2" id="hero-lead">Cari layanan, prosedur, kabar, dan edukasi keselamatan, kesehatan, dan lingkungan tanpa perlu bertanya ke banyak orang.</p>
 
       <div class="search hero-in d2" role="search">
         <label class="sr" for="q">Cari layanan, dokumen, kabar, atau edukasi</label>
@@ -44,7 +44,7 @@
         <div class="results" id="results" role="listbox" aria-label="Hasil pencarian" hidden></div>
       </div>
       <div class="quick">
-        <span>Sering dicari:</span>
+        <span>Contoh pencarian:</span>
         <button class="chip" data-q="apd">APD</button>
         <button class="chip" data-q="hazard">Hazard</button>
         <button class="chip" data-q="izin kerja">Izin kerja</button>
@@ -224,8 +224,11 @@
       <label>Pesan
         <textarea id="f-msg" required></textarea>
       </label>
-      <button class="btn" type="submit">Kirim pesan</button>
-      <p class="note" id="f-note" role="status">Pesan akan terbuka di aplikasi email Anda.</p>
+      <div class="f-acts">
+        <button class="btn" type="submit" id="f-wa" value="wa">Kirim lewat WhatsApp</button>
+        <button class="btn ghost" type="submit" id="f-mail" value="mail">Kirim lewat email</button>
+      </div>
+      <p class="note" id="f-note" role="status">Pesan terbuka di WhatsApp atau aplikasi email, lalu Anda tinggal menekan kirim.</p>
     </form>
   </div>
 </section>
@@ -256,7 +259,14 @@
   if (heroImg) {
     const a = Math.min(0.9, Math.max(0.2, (parseInt(C.heroOverlay, 10) || 65) / 100));
     hero.classList.add("hero--img");
-    hero.style.backgroundImage = `linear-gradient(rgba(15,23,42,${a}), rgba(15,23,42,${Math.min(0.96, a + 0.12)})), url("${String(heroImg).replace(/"/g, "%22")}")`;
+    hero.style.setProperty("--ov", a);
+    hero.style.setProperty("--ov2", Math.min(0.96, a + 0.12));
+    const bg = document.createElement("img");
+    bg.className = "hero-bg"; bg.alt = ""; bg.decoding = "async";
+    bg.setAttribute("fetchpriority", "high");
+    bg.src = heroImg;
+    bg.onerror = () => { bg.remove(); hero.classList.remove("hero--img"); };
+    hero.prepend(bg);
   }
   if (C.heroLayout === "terpusat") hero.classList.add("hero--center");
   $("#judul").textContent = tx(C.heroTitle);
@@ -264,17 +274,26 @@
   $("#svc-intro").textContent = tx(C.servicesIntro);
   $("#about-p1").textContent = tx(C.aboutP1);
   $("#about-p2").textContent = tx(C.aboutP2);
-  const PILLAR_STYLE = [["blue", "shield"], ["teal", "pulse"], ["amber", "leaf"], ["red", "monitor"]];
+  const PILLAR_ICONS = ["shield", "pulse", "leaf", "monitor"];
   $("#pillars").innerHTML = (C.pillars || []).map((p, i) => {
-    const [tone, ic] = PILLAR_STYLE[i % PILLAR_STYLE.length];
-    return `<div class="pillar"><span class="ib t-${tone}">${icon(I[ic])}</span><h3>${esc(tx(p.title))}</h3><p>${esc(tx(p.text))}</p></div>`;
+    const ic = PILLAR_ICONS[i % PILLAR_ICONS.length];
+    return `<div class="pillar"><span class="ib">${icon(I[ic])}</span><h3>${esc(tx(p.title))}</h3><p>${esc(tx(p.text))}</p></div>`;
   }).join("");
+  const waNum = String(C.whatsapp || "").replace(/\D/g, "");
+  const hasWA = waNum.length >= 8;
   $("#c-wa").href = window.SH.waLink();
-  $("#c-wa-t").textContent = C.whatsappLabel;
+  $("#c-wa-t").textContent = C.whatsappLabel || C.whatsapp;
+  $("#c-wa").hidden = !hasWA;
   $("#c-mail").href = "mailto:" + C.email;
   $("#c-mail-t").textContent = C.email;
+  $("#c-mail").hidden = !C.email;
   $("#c-addr").innerHTML = esc(C.address) + (C.mapsUrl ? ` <a href="${esc(C.mapsUrl)}" target="_blank" rel="noopener" style="text-decoration:underline">Buka peta</a>` : "");
+  $("#c-addr").closest("div").hidden = !C.address;
   $("#c-hours").textContent = C.hours;
+  $("#c-hours").closest("div").hidden = !C.hours;
+  $("#f-wa").hidden = !hasWA;
+  $("#f-mail").hidden = !C.email;
+  if (!hasWA && !C.email) $("#form").hidden = true;
   $("#ci-wa").innerHTML = window.SH.waIcon;
   $("#ci-mail").innerHTML = icon(I.mail);
   $("#ci-pin").innerHTML = icon(I.pin);
@@ -284,8 +303,13 @@
     : `<div><img class="logo" src="assets/logo-192.png" alt=""><b style="color:#fff;font-family:var(--display);font-size:1.4rem">${esc(C.name)}</b><br><span>${esc(C.tagline)}</span></div>`;
 
   /* ===== Papan Informasi KPLH ===== */
-  $("#kplh").innerHTML = window.SH.kplhHTML(window.KPLH);
-  $("#kplh").classList.toggle("kplh--excel", window.KPLH.theme === "excel");   // bawaan: selaras warna situs
+  const K = window.KPLH || {};
+  if (!(K.rows && K.rows.length)) {
+    $("#kplh-print-area").innerHTML = '<p class="empty">Papan KPLH periode ini belum diisi.</p>';
+    $("#kplh-cetak").hidden = true;
+    $(".kplh-hint").hidden = true;
+  } else $("#kplh").innerHTML = window.SH.kplhHTML(K);
+  if ($("#kplh")) $("#kplh").classList.toggle("kplh--excel", K.theme === "excel");   // bawaan: selaras warna situs
   $("#kplh-cetak").addEventListener("click", () => window.print());
 
   /* ===== Statistik ===== */
@@ -298,22 +322,27 @@
       if (error) failed = true; else rows = data || [];
     }
     const map = new Map((rows || []).map(r => [r.key, r]));
+    const hint = $("#stat-hint");
+    if (!rows) {
+      /* Tanpa akses: satu panel ringkas, bukan deretan kartu kosong bertanda titik */
+      const noPerm = Auth.configured && A && Auth.isApproved(A) && !Auth.can(A, "stats");
+      const msg = failed ? "Data statistik belum tersedia. Pastikan skema database terbaru (supabase/schema.sql) sudah dijalankan."
+        : noPerm ? "Akun Anda tidak memiliki akses ke statistik. Hubungi admin bila Anda memerlukannya."
+        : "Angka " + window.STAT_DEFS.length + " indikator SHE hanya terlihat oleh akun yang sudah disetujui.";
+      $("#stats").innerHTML = `<button class="stat-lock" type="button" ${noPerm || failed ? "disabled" : "data-lock"}><span class="sico">${icon(I.lock)}</span><span>${esc(msg)}</span>${noPerm || failed ? "" : '<b>Masuk</b>'}</button>`;
+      hint.textContent = "";
+      return;
+    }
     $("#stats").innerHTML = window.STAT_DEFS.map(d => {
-      const tone = "t-" + d.tone;
-      if (rows) {
+      {
         const r = map.get(d.key);
         const v = r && r.value !== "" && r.value != null ? r.value : "-";
         const unit = (r && r.unit) || d.unit;
         const meta = [r && r.note ? r.note : "", r && r.updated_at ? "Diperbarui " + fmtDate(r.updated_at.slice(0, 10)) : ""].filter(Boolean).join(" | ");
-        return `<div class="stat-card ${tone}"><span class="sico">${icon(iconOf(d.icon, I.chart))}</span><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
+        return `<div class="stat-card"><span class="sico">${icon(iconOf(d.icon, I.chart))}</span><span class="sl">${esc(d.label)}</span><span class="sv">${esc(v)}${unit ? `<small>${esc(unit)}</small>` : ""}</span><span class="sn">${esc(meta)}</span></div>`;
       }
-      return `<button class="stat-card locked ${tone}" type="button" data-lock><span class="sico">${icon(iconOf(d.icon, I.chart))}</span><span class="sl">${esc(d.label)}</span><span class="sv" aria-hidden="true">&bull;&bull;&bull;</span><span class="sn">${icon(I.lock)} Masuk untuk melihat</span></button>`;
     }).join("");
-    const hint = $("#stat-hint");
-    if (failed) hint.textContent = "Data statistik belum tersedia. Pastikan skema database terbaru (supabase/schema.sql) sudah dijalankan.";
-    else if (!rows && Auth.configured && !A) hint.textContent = "Masuk dengan akun yang sudah disetujui untuk melihat angka.";
-    else if (!rows && Auth.configured && Auth.isApproved(A) && !Auth.can(A, "stats")) hint.textContent = "Akun Anda tidak memiliki akses ke statistik. Hubungi admin bila Anda memerlukannya.";
-    else hint.textContent = "";
+    hint.textContent = "";
   }
   $("#stats").addEventListener("click", e => { if (e.target.closest("[data-lock]")) ensureAccess("Statistik SHE", "stats"); });
   renderStats();
@@ -356,7 +385,8 @@
   }
   fillRow("#kabar-row", "#kabar-ctl", kabar, "Belum ada kabar.");
   // ajakan Daily Quotes: tampil hanya bila fitur sudah dipasang di database dan sedang aktif
-  try { const r = await Auth.client.from("dq_settings").select("enabled").eq("id", 1).maybeSingle(); if (!r.error && r.data && r.data.enabled) $("#dq-promo").hidden = false; } catch (e) { /* fitur belum dipasang: ajakan tetap tersembunyi */ }
+  if (Auth.configured) Auth.client.from("dq_settings").select("enabled").eq("id", 1).maybeSingle()
+    .then(r => { if (!r.error && r.data && r.data.enabled) $("#dq-promo").hidden = false; }, () => { /* fitur belum dipasang: ajakan tetap tersembunyi */ });
   fillRow("#edu-row", "#edu-ctl", edu, "Belum ada edukasi.");
 
   /* ===== Hari Besar, Buletin & Kampanye (jenis konten selain Kabar dan Edukasi) ===== */
@@ -389,21 +419,23 @@
         <td data-l="Jenis">${esc(d.type)}</td>
         <td data-l="Format"><span class="ft f-${String(d.fmt).toLowerCase().replace(/[^a-z0-9]/g, "")}">${esc(d.fmt)}</span></td>
         <td data-l="Diperbarui">${fmtDate(d.date)}</td>
-        <td><button class="dl" data-doc="${d.id}" aria-label="Unduh ${esc(d.title)}">Unduh</button></td>
+        <td>${d.url ? `<button class="dl" data-doc="${d.id}" aria-label="Unduh ${esc(d.title)}">Unduh</button>` : '<span class="dl-none">Belum tersedia</span>'}</td>
       </tr>`).join("");
+    $("#docs-empty").textContent = window.DOCS.length ? "Tidak ada dokumen yang cocok. Coba kata kunci lain atau pilih Semua jenis." : "Belum ada dokumen yang diunggah.";
     $("#docs-empty").hidden = list.length > 0;
+    $(".doc-tools").hidden = !window.DOCS.length;
   }
   $("#dq").addEventListener("input", renderDocs);
   $("#dt").addEventListener("change", renderDocs);
   $("#docs").addEventListener("click", e => {
     const b = e.target.closest("[data-doc]"); if (!b) return;
     const d = window.DOCS.find(x => x.id === b.dataset.doc);
-    if (d.url) { window.open(d.url, "_blank", "noopener"); return; }
-    openDialog(d.title, "Tautan unduhan belum tersambung. Letakkan file di folder public/dokumen lalu isi bidang url pada data dokumen di assets/data.js.", "Tutup");
+    if (d && d.url) window.open(d.url, "_blank", "noopener");
   });
   renderDocs();
 
   /* ===== FAQ ===== */
+  $("#faq").hidden = !window.FAQ.length;
   $("#faq-list").innerHTML = window.FAQ.map(f => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("");
 
   /* ===== Pencarian ===== */
@@ -474,8 +506,14 @@
     const note = $("#f-note");
     if (!name || !msg) { note.textContent = "Isi nama lengkap dan pesan terlebih dahulu."; return; }
     const body = `Nama: ${name}\nNRP/NIK: ${$("#f-id").value.trim() || "-"}\nPerusahaan: ${$("#f-co").value.trim() || "-"}\nTopik: ${$("#f-topic").value}\n\n${msg}`;
-    location.href = `mailto:${C.email}?subject=${encodeURIComponent("[" + C.name + "] " + $("#f-topic").value)}&body=${encodeURIComponent(body)}`;
-    note.textContent = "Aplikasi email Anda dibuka. Kirim pesan dari sana untuk menyelesaikan.";
+    const via = (e.submitter && e.submitter.value) || (hasWA ? "wa" : "mail");
+    if (via === "wa" && hasWA) {
+      window.open("https://wa.me/" + waNum + "?text=" + encodeURIComponent("[" + C.name + "] " + body), "_blank", "noopener");
+      note.textContent = "WhatsApp dibuka. Tekan kirim di sana untuk menyelesaikan.";
+    } else {
+      location.href = `mailto:${C.email}?subject=${encodeURIComponent("[" + C.name + "] " + $("#f-topic").value)}&body=${encodeURIComponent(body)}`;
+      note.textContent = "Aplikasi email dibuka. Tekan kirim di sana untuk menyelesaikan.";
+    }
   });
 
   spy(["papan", "layanan", "kabar", "edukasi", "informasi", "dokumen", "tentang", "faq", "kontak"]);

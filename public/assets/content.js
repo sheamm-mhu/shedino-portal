@@ -38,38 +38,38 @@
   });
   const mapFaq = r => ({ q: r.q, a: r.a || "" });
 
-  async function load() {
-    if (!window.Auth || !Auth.configured) return;
-    const c = Auth.client;
-    const q = (table, order, asc) => c.from(table).select("*").order(order, { ascending: asc })
-      .then(res => res, () => ({ data: null, error: true }));
+  /* Isi contoh di data.js hanya untuk mode demo (database belum diatur).
+     Bila database sudah diatur, isi contoh tidak pernah ditampilkan kepada pengunjung:
+     yang tampil adalah isi database, salinan terakhirnya di perangkat ini, atau
+     keadaan kosong yang jujur. */
+  const CACHE_KEY = "shedino-konten-v1";
+  const CONTACT_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours"];
 
-    const all = Promise.all([
-      q("media_posts", "pub_date", false),
-      q("site_docs", "doc_date", false),
-      q("site_services", "sort_order", true),
-      q("site_faq", "sort_order", true),
-      q("site_groups", "sort_order", true),
-      c.from("site_settings").select("key,value").then(res => res, () => ({ data: null, error: true }))
-    ]);
-    // Jangan menahan halaman lebih dari 3 detik
-    const res = await Promise.race([all, new Promise(r => setTimeout(() => r(null), 3000))]);
-    if (!res) return;
+  function clearSamples() {
+    window.MEDIA = [];
+    window.DOCS = [];
+    window.SERVICES = [];
+    window.FAQ = [];
+    CONTACT_KEYS.forEach(k => { window.CONFIG[k] = ""; });
+    const K = window.KPLH || {};
+    window.KPLH = { title1: K.title1 || "PAPAN INFORMASI KPLH", title2: "", bulan: "", tahun: "", logoText: "", rows: [], infoText: "", infoImage: "", theme: K.theme };
+  }
+
+  function apply(res) {
     const [media, docs, services, faq, groups, settings] = res;
-
-    if (media && !media.error && media.data && media.data.length) {
+    if (media && !media.error && media.data) {
       window.MEDIA = media.data.filter(r => r.published !== false).map(mapMedia);
     }
-    if (docs && !docs.error && docs.data && docs.data.length) {
+    if (docs && !docs.error && docs.data) {
       window.DOCS = docs.data.filter(r => r.published !== false).map(mapDoc);
     }
-    if (services && !services.error && services.data && services.data.length) {
+    if (services && !services.error && services.data) {
       window.SERVICES = services.data.map(mapService);
     }
     if (groups && !groups.error && groups.data && groups.data.length) {
       window.GROUPS = groups.data.map(mapGroup);
     }
-    if (faq && !faq.error && faq.data && faq.data.length) {
+    if (faq && !faq.error && faq.data) {
       window.FAQ = faq.data.map(mapFaq);
     }
     if (settings && !settings.error && settings.data) {
@@ -108,5 +108,45 @@
     }
   }
 
-  window.contentReady = load().catch(() => { /* tetap pakai data.js */ });
+  const okAll = res => res && res.every(r => r && !r.error && r.data);
+  function saveCache(res) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), d: res.map(r => r.data) })); } catch (e) { /* penyimpanan penuh atau dimatikan */ }
+  }
+  function readCache() {
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (c && Array.isArray(c.d) && c.d.length === 6) return { t: c.t, res: c.d.map(d => ({ data: d, error: null })) };
+    } catch (e) { /* salinan rusak: abaikan */ }
+    return null;
+  }
+  const wait = ms => new Promise(r => setTimeout(() => r(null), ms));
+
+  /* window.CONTENT_STATE: "demo" | "langsung" | "salinan" | "gagal"; CONTENT_SAVED_AT: waktu salinan */
+  async function load() {
+    if (!window.Auth || !Auth.configured) { window.CONTENT_STATE = "demo"; return; }
+    clearSamples();
+    const c = Auth.client;
+    const q = (table, order, asc) => c.from(table).select("*").order(order, { ascending: asc })
+      .then(res => res, () => ({ data: null, error: true }));
+
+    const all = Promise.all([
+      q("media_posts", "pub_date", false),
+      q("site_docs", "doc_date", false),
+      q("site_services", "sort_order", true),
+      q("site_faq", "sort_order", true),
+      q("site_groups", "sort_order", true),
+      c.from("site_settings").select("key,value").then(res => res, () => ({ data: null, error: true }))
+    ]);
+    all.then(res => { if (okAll(res)) saveCache(res); }, () => {});
+
+    const cache = readCache();
+    // Dengan salinan tersimpan, jangan menahan halaman lebih dari 3 detik.
+    // Tanpa salinan, tunggu lebih lama (12 detik) karena tidak ada isi lain yang jujur untuk ditampilkan.
+    let res = await Promise.race([all, wait(cache ? 3000 : 12000)]);
+    if (res && res.some(r => r && !r.error)) { apply(res); window.CONTENT_STATE = "langsung"; return; }
+    if (cache) { apply(cache.res); window.CONTENT_STATE = "salinan"; window.CONTENT_SAVED_AT = cache.t; return; }
+    window.CONTENT_STATE = "gagal";
+  }
+
+  window.contentReady = load().catch(() => { window.CONTENT_STATE = window.CONTENT_STATE || "gagal"; });
 })();

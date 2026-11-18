@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="SHEDINO">
+<meta name="format-detection" content="telephone=no">
+<title>Kebijakan privasi | SHEDINO</title>
+<meta name="description" content="Data apa yang disimpan SHEDINO, untuk apa, siapa yang dapat melihatnya, dan cara meminta perubahan atau penghapusan.">
+<meta name="theme-color" content="#0F172A">
+<link rel="icon" type="image/png" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/bricolage-grotesque-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header id="site-header" class="top"></header>
+
+<main>
+  <section class="page-head" aria-labelledby="h1">
+    <div class="wrap">
+      <div class="crumbs"><a href="index.html">Beranda</a> / Kebijakan privasi</div>
+      <h1 id="h1">Kebijakan privasi</h1>
+      <p>Data apa yang disimpan <span data-bind="name">SHEDINO</span>, untuk apa, dan bagaimana Anda dapat mengaturnya.</p>
+    </div>
+  </section>
+
+  <section class="page-body">
+    <div class="wrap prose">
+      <p>Halaman ini menjelaskan data pribadi yang dikumpulkan portal ini, dikelola oleh Departemen SHE <span data-bind="company">perusahaan</span>. Portal ini tunduk pada Undang-Undang Nomor 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
+
+      <h2>Data yang kami simpan</h2>
+      <p><b>Akun.</b> Saat mendaftar, Anda memberikan nama lengkap, NRP, alamat email, dan departemen. Admin memberi Anda peran (misalnya Karyawan, Pengawas, atau Subkontraktor) dan hak akses. Untuk melindungi akun, portal mencatat jumlah percobaan masuk yang gagal dan waktu penguncian sementara.</p>
+      <p><b>Daily Quotes.</b> Bila Anda membuat poster, portal menyimpan foto yang Anda unggah, nama, jabatan, kata-kata, dan nama pengirim. Latar foto dihapus di perangkat Anda sendiri, bukan di server. Poster baru tampil untuk umum setelah disetujui admin.</p>
+      <p><b>SHEGAMES.</b> Portal menyimpan skor, waktu bermain, jawaban yang salah, dan kemajuan permainan Anda untuk menyusun peringkat.</p>
+      <p><b>Formulir kontak.</b> Formulir di beranda tidak menyimpan apa pun di server. Pesan Anda dibuka di WhatsApp atau aplikasi email Anda, dan baru terkirim saat Anda menekan kirim di sana.</p>
+      <p><b>Di perangkat Anda.</b> Portal menyimpan status masuk Anda dan salinan isi publik (berita, dokumen, layanan) di browser, supaya halaman tetap terbuka saat koneksi lambat. Salinan ini bisa dihapus dengan membersihkan data situs di browser.</p>
+
+      <h2>Untuk apa data dipakai</h2>
+      <p>Data akun dipakai untuk menyetujui akun, mengatur hak akses ke layanan dan statistik, dan menampilkan nama Anda di portal. Data Daily Quotes dipakai untuk menerbitkan poster yang Anda kirim. Data SHEGAMES dipakai untuk skor, peringkat, dan laporan partisipasi kepada manajemen. Data tidak dijual dan tidak dipakai untuk iklan.</p>
+
+      <h2>Siapa yang dapat melihatnya</h2>
+      <p>Admin SHE dapat melihat data akun, kiriman Daily Quotes, dan skor SHEGAMES. Pengguna lain hanya melihat apa yang memang ditampilkan: poster yang sudah disetujui dan nama di papan peringkat. Data disimpan di layanan basis data Supabase dan situs berjalan di Vercel.</p>
+
+      <h2>Hak Anda</h2>
+      <p>Anda dapat meminta salinan data Anda, meminta perbaikan data yang salah, atau meminta akun dan data Anda dihapus. Kirim permintaan ke <a id="priv-mail" href="#">tim SHE</a>. Kiriman Daily Quotes yang belum disetujui dapat ditolak atau dihapus oleh admin atas permintaan Anda.</p>
+
+      <h2>Perubahan</h2>
+      <p>Bila cara kami memakai data berubah, halaman ini diperbarui terlebih dahulu.</p>
+    </div>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script src="assets/vendor/supabase.js"></script>
+<script src="config.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/data.js"></script>
+<script src="assets/content.js"></script>
+<script src="assets/shared.js"></script>
+<script>
+(async function () {
+  await window.contentReady;
+  const C = window.CONFIG;
+  document.querySelectorAll("[data-bind=name]").forEach(e => e.textContent = C.name);
+  document.querySelectorAll("[data-bind=company]").forEach(e => e.textContent = C.company || "perusahaan");
+  const m = document.getElementById("priv-mail");
+  if (C.email) { m.href = "mailto:" + C.email; m.textContent = C.email; } else { m.removeAttribute("href"); }
+})();
+</script>
+</body>
+</html>

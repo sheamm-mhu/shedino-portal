@@ -69,26 +69,28 @@
       <span class="badge ${s.login ? "lock" : "open"}">${s.login ? icon(I.lock) + " Perlu login" : "Terbuka"}</span>
       <h3>${esc(s.title)}</h3>
       <p>${esc(s.desc)}</p>
-      <button class="sbtn" type="button" data-svc="${esc(s.id)}">${esc(s.btnLabel || "Buka layanan")}</button>
+      ${safe(s.url)
+        ? `<button class="sbtn" type="button" data-svc="${esc(s.id)}">${esc(s.btnLabel || "Buka layanan")}</button>`
+        : `<button class="sbtn soon" type="button" disabled aria-disabled="true">Segera hadir</button>`}
     </article>`;
   }
   /* Tab pil: tab biasa menyaring layanan, tab dengan "url" menjadi tautan ke halaman lain */
   function groupTabsHTML(active, withAll) {
     const out = [];
-    if (withAll) out.push(`<button class="gtab" type="button" data-g="Semua" aria-pressed="${active === "Semua"}"><i class="dot"></i>Semua</button>`);
+    if (withAll) out.push(`<button class="gtab" type="button" data-g="Semua" aria-pressed="${active === "Semua"}">Semua</button>`);
     groupList().forEach(g => {
       const ic = icon(iconOf(g.icon));
       if (g.url) {
         const u = safe(g.url), ext = /^https?:/i.test(u);
-        if (u) out.push(`<a class="gtab" href="${esc(u)}"${ext ? ' target="_blank" rel="noopener"' : ""}><i class="dot"></i>${ic}${esc(g.name)}<span class="ext" aria-hidden="true">&nearr;</span></a>`);
+        if (u) out.push(`<a class="gtab" href="${esc(u)}"${ext ? ' target="_blank" rel="noopener"' : ""}>${ic}${esc(g.name)}<span class="ext" aria-hidden="true">&nearr;</span></a>`);
       } else {
-        out.push(`<button class="gtab" type="button" data-g="${esc(g.name)}" aria-pressed="${g.name === active}"><i class="dot"></i>${ic}${esc(g.name)}</button>`);
+        out.push(`<button class="gtab" type="button" data-g="${esc(g.name)}" aria-pressed="${g.name === active}">${ic}${esc(g.name)}</button>`);
       }
     });
     return out.join("");
   }
   /* Teks halaman: {nama}, {tagline}, {perusahaan} diganti dengan pengaturan situs */
-  const tx = str => String(str == null ? "" : str).replace(/\{nama\}/g, C.name).replace(/\{tagline\}/g, C.tagline).replace(/\{perusahaan\}/g, C.company);
+  const tx = str => String(str == null ? "" : str).replace(/\{nama\}/g, C.name).replace(/\{tagline\}/g, C.tagline).replace(/\{perusahaan\}/g, C.company || "perusahaan");
   const CAT_META = {
     "Keselamatan Kerja": { tone: "blue", icon: "shield" },
     "Kesehatan Kerja": { tone: "teal", icon: "pulse" },
@@ -250,6 +252,32 @@
       ${mlist(K, rows, info)}`;
   }
 
+  const hasWA = () => String(C.whatsapp || "").replace(/\D/g, "").length >= 8;
+  function contactItems() {
+    const out = [];
+    if (C.address) out.push(`<li>${esc(C.address)}${C.mapsUrl ? ` <a href="${esc(C.mapsUrl)}" target="_blank" rel="noopener">(peta)</a>` : ""}</li>`);
+    if (hasWA()) out.push(`<li><a href="${esc(waLink())}" target="_blank" rel="noopener">WhatsApp ${esc(C.whatsappLabel || C.whatsapp)}</a></li>`);
+    if (C.email) out.push(`<li><a href="mailto:${esc(C.email)}">${esc(C.email)}</a></li>`);
+    if (C.hours) out.push(`<li>${esc(C.hours)}</li>`);
+    return out.join("") || "<li>Kontak belum diisi admin.</li>";
+  }
+  /* Pemberitahuan jujur bila isi bukan dari database secara langsung */
+  function contentNotice() {
+    const st = window.CONTENT_STATE;
+    let text = "";
+    if (st === "demo") text = "Mode contoh: database belum dihubungkan. Semua berita, angka, dan kontak di halaman ini hanya contoh.";
+    else if (st === "salinan") text = "Koneksi lambat. Yang tampil adalah salinan tersimpan per " + new Date(window.CONTENT_SAVED_AT).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + ".";
+    else if (st === "gagal") text = "Konten belum bisa dimuat. Periksa koneksi internet, lalu muat ulang halaman.";
+    if (!text || $("#content-notice")) return;
+    const bar = document.createElement("div");
+    bar.id = "content-notice";
+    bar.className = "content-notice";
+    bar.setAttribute("role", "status");
+    bar.innerHTML = `<div class="wrap"><span>${esc(text)}</span>${st === "demo" ? "" : '<button type="button" class="btn ghost">Muat ulang</button>'}</div>`;
+    const btn = $("button", bar); if (btn) btn.addEventListener("click", () => location.reload());
+    const h = $("#site-header");
+    if (h) h.insertAdjacentElement("afterend", bar); else document.body.prepend(bar);
+  }
   function waLink() {
     const t = `Halo Admin ${C.name},\n\nMohon bantuannya terkait informasi berikut:\n\nNama :\nNRP :\nPerusahaan :\nPertanyaan :\n\nTerima kasih.\n\n> Dikirim melalui ${C.name}`;
     return "https://wa.me/" + String(C.whatsapp == null ? "" : C.whatsapp).replace(/\D/g, "") + "?text=" + encodeURIComponent(t);
@@ -326,7 +354,7 @@
         <div class="foot-grid">
           <div>
             <a class="brand" href="index.html"><img class="brand-mark" src="assets/logo-192.png" width="40" height="40" alt=""><span class="brand-txt"><span>${esc(C.name)}</span><small>${esc(C.tagline)}</small></span></a>
-            <p>Portal informasi digital Safety, Health &amp; Environment ${esc(C.company)}.</p>
+            <p>Portal informasi digital Safety, Health &amp; Environment${C.company ? " " + esc(C.company) : ""}.</p>
           </div>
           <div>
             <h3>Menu</h3>
@@ -335,20 +363,19 @@
           <div>
             <h3>Hubungi kami</h3>
             <ul>
-              <li>${esc(C.address)}${C.mapsUrl ? ` <a href="${esc(C.mapsUrl)}" target="_blank" rel="noopener">(peta)</a>` : ""}</li>
-              <li><a href="${esc(waLink())}" target="_blank" rel="noopener">WhatsApp ${esc(C.whatsappLabel)}</a></li>
-              <li><a href="mailto:${esc(C.email)}">${esc(C.email)}</a></li>
-              <li>${esc(C.hours)}</li>
+              ${contactItems()}
             </ul>
           </div>
         </div>
         <div class="foot-bottom">
-          <p class="copy">&copy; ${new Date().getFullYear()} ${esc(C.company)}. Hak cipta dilindungi.</p>
+          <p class="copy">&copy; ${new Date().getFullYear()} ${esc(C.company || C.name)}. Hak cipta dilindungi. <a href="privasi.html">Kebijakan privasi</a></p>
           <p class="credit">${esc(CREDIT)}</p>
         </div>
       </div>`;
     }
 
+    contentNotice();
+    if (!hasWA()) return;
     const wa = document.createElement("a");
     wa.className = "wa";
     wa.href = waLink();
@@ -453,7 +480,7 @@
       else location.href = url;
       return;
     }
-    openDialog(s.title, "Alamat layanan ini belum diatur. Isi bidang url pada data layanan di assets/data.js.", "Tutup");
+    openDialog(s.title, "Layanan ini belum tersedia secara online. Untuk sementara, hubungi tim SHE.", "Tutup");
   }
 
   function flashHash() {
@@ -481,32 +508,15 @@
   function initMotion() {
     const reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-    /* Perpindahan halaman (sama di semua peramban): isi halaman memudar keluar saat tautan diklik,
-       lalu halaman tujuan masuk dengan animasi. Header dan tombol WhatsApp tetap diam. */
+    /* Perpindahan halaman: klik tautan tidak ditahan; halaman tujuan masuk dengan animasi singkat. */
     document.documentElement.classList.add("pt");
-    if (!reduce) {
-      document.addEventListener("click", e => {
-        const a = e.target.closest && e.target.closest("a[href]");
-        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-        if ((a.target && a.target !== "_self") || a.hasAttribute("download")) return;
-        let u; try { u = new URL(a.href, location.href); } catch (err) { return; }
-        if (u.origin !== location.origin) return;
-        const clean = p => p.replace(/\.html$/, "").replace(/\/index$/, "/");
-        if (clean(u.pathname) === clean(location.pathname) && u.search === location.search) return;   // hanya pindah bagian di halaman yang sama
-        e.preventDefault();
-        document.body.classList.add("leaving");
-        setTimeout(() => { location.href = a.href; }, 190);
-      });
-      window.addEventListener("pageshow", ev => { if (ev.persisted) document.body.classList.remove("leaving"); });
-    }
 
-    /* Animasi masuk: elemen muncul setiap kali masuk ke layar, dan diputar ulang saat digulir kembali */
+    /* Animasi masuk: elemen muncul sekali saat pertama masuk layar */
     if (reduce || !("IntersectionObserver" in window)) return;
     const io = new IntersectionObserver(entries => {
       entries.forEach(en => {
         const el = en.target;
-        if (en.isIntersecting) el.classList.add("in");
-        else { const r = en.boundingClientRect; if (r.bottom < 0 || r.top > innerHeight) el.classList.remove("in"); }
+        if (en.isIntersecting) { el.classList.add("in"); io.unobserve(el); }
       });
     }, { rootMargin: "0px 0px -8% 0px", threshold: 0 });
     const seen = new WeakSet();

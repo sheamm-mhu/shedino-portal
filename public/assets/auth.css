@@ -1,7 +1,12 @@
+/* Font disimpan di situs sendiri (tidak bergantung pada Google Fonts, tidak menahan tampilan halaman) */
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:200 800;font-display:swap;src:url(fonts/bricolage-grotesque-latin-opsz-normal.woff2) format("woff2")}
+@font-face{font-family:"Figtree";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/figtree-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Figtree";font-style:normal;font-weight:500;font-display:swap;src:url(fonts/figtree-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Figtree";font-style:normal;font-weight:600;font-display:swap;src:url(fonts/figtree-latin-600-normal.woff2) format("woff2")}
 :root{
   --ink:#0F172A;--ink-2:#1A1E29;
   --paper:#F8FAFC;--card:#FFFFFF;
-  --crimson:#E11D48;--crimson-dk:#DC2626;
+  --crimson:#E0000A;--crimson-dk:#B80007;--focus:#1D4ED8;
   --data-blue:#2563EB;--data-teal:#0D9488;--data-amber:#D97706;--data-gray:#64748B;
   --teal:#0F766E;--slate:#475569;--line:#DCE3EB;--warn:#B45309;
   --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
@@ -12,7 +17,7 @@ body{margin:0;font-family:var(--body);font-size:1.0625rem;line-height:1.6;color:
 h1,h2,h3{font-family:var(--display);line-height:1.1;margin:0;letter-spacing:-.02em}
 a{color:inherit}
 button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--crimson);outline-offset:2px;border-radius:4px}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wrap{width:min(1160px,100% - 2.5rem);margin-inline:auto}
 

@@ -337,7 +337,7 @@ window.KPLH = {
     { label: "AUDIT INTERNAL KPLH", objective: "1", mtd: "0", ytd: "0", ptd: "-" },
     { label: "AUDIT EXTERNAL KPLH", objective: "1", mtd: "0", ytd: "0", ptd: "-" },
     { label: "ENVIRONMENTAL ACCIDENT", objective: "0", mtd: "0", ytd: "0", ptd: "-" },
-    { label: "COMMUNNITIES COMPLAIN", objective: "0", mtd: "0", ytd: "0", ptd: "-" }
+    { label: "COMMUNITY COMPLAINTS", objective: "0", mtd: "0", ytd: "0", ptd: "-" }
   ],
   infoText: "",     // isi kolom SHE INFORMATION (teks)
   infoImage: ""     // isi kolom SHE INFORMATION (gambar, mis. poster)
