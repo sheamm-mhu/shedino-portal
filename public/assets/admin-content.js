@@ -474,7 +474,7 @@
   /* ---------- Pengaturan situs ---------- */
   const SET_FIELDS = [
     ["company", "Nama perusahaan"], ["address", "Alamat kantor"], ["mapsUrl", "Tautan peta (Google Maps, opsional)"],
-    ["email", "Email"], ["whatsapp", "Nomor WhatsApp (format 62812xxxxxxx, tanpa tanda plus)"], ["whatsappLabel", "Nomor WhatsApp yang ditampilkan"], ["hours", "Jam layanan"], ["credit", "Tulisan kredit di bawah footer (kosongkan untuk menyembunyikan)"]
+    ["email", "Email"], ["whatsapp", "Nomor WhatsApp (format 62812xxxxxxx, tanpa tanda plus)"], ["whatsappLabel", "Nomor WhatsApp yang ditampilkan"], ["hours", "Jam layanan"]
   ];
   const TEXT_KEYS = ["heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   function pillarRowHTML(p) {

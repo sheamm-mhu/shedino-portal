@@ -68,9 +68,9 @@
 
         <form id="f-in" novalidate style="margin-top:1rem">
           <h2>Selamat datang kembali</h2>
-          <p class="sub" style="margin:0">Masukkan email dan kata sandi Anda.</p>
-          <label>Email
-            <input id="in-email" type="email" autocomplete="username" required>
+          <p class="sub" style="margin:0">Masukkan NRP (atau email) dan kata sandi Anda.</p>
+          <label>NRP atau email
+            <input id="in-email" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required>
           </label>
           <label>Kata sandi
             <input id="in-pass" type="password" autocomplete="current-password" required>
@@ -85,8 +85,9 @@
           <label>Nama lengkap
             <input id="up-name" autocomplete="name" required>
           </label>
-          <label>ID karyawan <small>(opsional, membantu admin memverifikasi)</small>
-            <input id="up-eid" autocomplete="off">
+          <label>NRP <small>(wajib; dipakai sebagai username untuk masuk)</small>
+            <input id="up-eid" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20" required aria-describedby="up-eid-h">
+            <small id="up-eid-h">3 sampai 20 karakter: huruf, angka, titik, garis bawah, atau strip. Tanpa spasi.</small>
           </label>
           <label>Email kantor
             <input id="up-email" type="email" autocomplete="email" required>
@@ -186,10 +187,10 @@
     e.preventDefault();
     clearNote("#msg");
     const email = $("#in-email").value.trim(), pass = $("#in-pass").value;
-    if(!email || !pass){ note("#msg","err","Isi email dan kata sandi."); return; }
+    if(!email || !pass){ note("#msg","err","Isi NRP (atau email) dan kata sandi."); return; }
     busy(e.target, true);
     try{
-      await Auth.signIn(email, pass);
+      await Auth.signInId(email, pass);
       location.href = next;
     }catch(err){
       note("#msg","err", Auth.friendly(err));
@@ -204,17 +205,21 @@
     const name = $("#up-name").value.trim(), eid = $("#up-eid").value.trim();
     const email = $("#up-email").value.trim(), p1 = $("#up-pass").value, p2 = $("#up-pass2").value;
     if(!name || !email){ note("#msg","err","Nama lengkap dan email wajib diisi."); return; }
+    if(!eid){ note("#msg","err","NRP wajib diisi. NRP dipakai sebagai username untuk masuk."); $("#up-eid").focus(); return; }
+    if(!Auth.nrpOk(eid)){ note("#msg","err","NRP hanya boleh huruf, angka, titik, garis bawah, atau strip (3 sampai 20 karakter, tanpa spasi)."); $("#up-eid").focus(); return; }
     if(p1.length < 8){ note("#msg","err","Kata sandi minimal 8 karakter."); return; }
     if(p1 !== p2){ note("#msg","err","Kata sandi dan pengulangannya tidak sama."); return; }
     busy(e.target, true);
     try{
+      let free = true; try { free = await Auth.nrpAvailable(eid); } catch (x) { /* pemeriksaan gagal: server tetap menolak NRP ganda */ }
+      if(!free){ note("#msg","err","NRP " + eid + " sudah terdaftar. Bila itu NRP Anda, silakan masuk atau hubungi admin."); busy(e.target, false); $("#up-eid").focus(); return; }
       const res = await Auth.signUp({ email, password:p1, fullName:name, employeeId:eid });
       e.target.reset();
       if(res.session){
-        note("#msg","ok","Pendaftaran berhasil. Akun Anda menunggu persetujuan admin.");
+        note("#msg","ok","Pendaftaran berhasil. Akun Anda menunggu persetujuan admin. Setelah disetujui, masuk memakai NRP " + eid + ".");
         setTimeout(() => location.href = "index.html", 1800);
       } else {
-        note("#msg","ok","Pendaftaran berhasil. Periksa email Anda untuk konfirmasi, lalu tunggu persetujuan admin.");
+        note("#msg","ok","Pendaftaran berhasil. Periksa email Anda untuk konfirmasi, lalu tunggu persetujuan admin. Masuk nanti memakai NRP " + eid + ".");
       }
     }catch(err){
       note("#msg","err", Auth.friendly(err));

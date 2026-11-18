@@ -293,7 +293,7 @@
     await window.authReady;
     const A = window.AUTH;
     let rows = null, failed = false;
-    if (Auth.configured && Auth.isApproved(A)) {
+    if (Auth.configured && Auth.isApproved(A) && Auth.can(A, "stats")) {
       const { data, error } = await Auth.client.from("she_stats").select("key,value,unit,note,updated_at");
       if (error) failed = true; else rows = data || [];
     }
@@ -312,9 +312,10 @@
     const hint = $("#stat-hint");
     if (failed) hint.textContent = "Data statistik belum tersedia. Pastikan skema database terbaru (supabase/schema.sql) sudah dijalankan.";
     else if (!rows && Auth.configured && !A) hint.textContent = "Masuk dengan akun yang sudah disetujui untuk melihat angka.";
+    else if (!rows && Auth.configured && Auth.isApproved(A) && !Auth.can(A, "stats")) hint.textContent = "Akun Anda tidak memiliki akses ke statistik. Hubungi admin bila Anda memerlukannya.";
     else hint.textContent = "";
   }
-  $("#stats").addEventListener("click", e => { if (e.target.closest("[data-lock]")) ensureAccess("Statistik SHE"); });
+  $("#stats").addEventListener("click", e => { if (e.target.closest("[data-lock]")) ensureAccess("Statistik SHE", "stats"); });
   renderStats();
 
   /* ===== Layanan: tab pil + kartu ===== */

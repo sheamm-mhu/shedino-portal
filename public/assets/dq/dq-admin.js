@@ -126,8 +126,8 @@
       } catch (err) { note("err", err.message); }
     });
   }
-  const defField = (key, over) => Object.assign({ key, label: ({ name: "Nama", job: "Jabatan atau departemen", quote: "Kata-kata", date: "Tanggal" })[key] || "Teks", sample: ({ name: "Nama Pekerja", job: "Jabatan, Departemen", quote: "Keselamatan bukan pilihan, tetapi tanggung jawab bersama.", date: "03/NOV/26" })[key] || "Contoh teks", x: 10, y: 50, w: 80, h: 6, size: 3, font: "body", weight: "600", italic: false, upper: false, color: "#FFFFFF", align: "center", maxlines: 1, shadow: false }, over || {});
-  function newE() { return { id: null, name: "", active: true, sort: TPL.length, back: null, front: null, frontClear: false, w: 1080, h: 1350, photo: { x: 8, y: 27, w: 84, h: 53 }, fields: [defField("name", { y: 81.6, h: 4.2, size: 3.4, font: "display", weight: "800", upper: true }), defField("job", { y: 86, h: 2.8, size: 2.1, color: "#FBBF24" }), defField("quote", { y: 89.2, h: 7, size: 2, weight: "500", italic: true, maxlines: 4 })], sel: "photo", assets: {} }; }
+  const defField = (key, over) => Object.assign({ key, label: ({ name: "Nama", job: "Jabatan atau departemen", quote: "Kata-kata", date: "Tanggal" })[key] || "Teks", sample: ({ name: "Nama Pekerja", job: "Jabatan, Departemen", quote: "Keselamatan bukan pilihan, tetapi tanggung jawab bersama.", date: "03/NOV/26" })[key] || "Contoh teks", x: 10, y: 50, w: 80, h: 10, size: 2.6, font: "body", weight: "600", italic: false, upper: false, color: "#FFFFFF", align: "center", maxlines: 3, shadow: false }, over || {});
+  function newE() { return { id: null, name: "", active: true, sort: TPL.length, back: null, front: null, frontClear: false, w: 1080, h: 1350, photo: { x: 8, y: 27, w: 84, h: 53 }, fields: [defField("name", { y: 81.6, h: 4.2, size: 3.4, font: "display", weight: "800", upper: true, maxlines: 1 }), defField("job", { y: 86, h: 2.8, size: 2.1, color: "#FBBF24", maxlines: 1 }), defField("quote", { y: 89.2, h: 7, size: 2, weight: "500", italic: true, maxlines: 4 })], sel: "photo", assets: {} }; }
   function fromRow(t) { return { id: t.id, name: t.name, active: t.active, sort: t.sort_order, back: { url: t.back_image, w: t.w, h: t.h }, front: t.front_image ? { url: t.front_image } : null, frontClear: false, w: t.w, h: t.h, photo: Object.assign({}, t.photo), fields: JSON.parse(JSON.stringify(t.fields)), sel: "photo", assets: {} }; }
 
   async function shrink(file, maxSide, kind) {
@@ -160,7 +160,7 @@
     let timer = 0;
     const loadAssets = async () => { try { E.assets.back = E.back ? await window.DQ.loadImage(E.back.url) : null; E.assets.front = E.front ? await window.DQ.loadImage(E.front.url).catch(() => null) : null; } catch (e) { emsg("err", "Gambar latar tidak dapat dimuat."); } };
     const render = async () => {
-      if (!E || !$("#dq-cv")) return; await window.DQ.ensureFonts();
+      if (!E || !$("#dq-cv")) return; await window.DQ.ensureFonts(E.fields);
       if (E.assets.back) window.DQ.render($("#dq-cv"), { w: E.w, h: E.h, photo: E.photo, fields: E.fields }, E.assets, { person: null, texts: {} }, { width: 540, placeholder: true, samples: true });
       else { const c = $("#dq-cv"); c.width = 540; c.height = Math.round(540 * E.h / E.w); const x = c.getContext("2d"); x.fillStyle = "#E2E8F0"; x.fillRect(0, 0, c.width, c.height); x.fillStyle = "#64748B"; x.font = "20px sans-serif"; x.textAlign = "center"; x.fillText("Unggah latar mentahan", c.width / 2, c.height / 2); }
     };
@@ -184,20 +184,32 @@
         h = `<fieldset class="ga-pform"><legend>Kotak teks: ${esc(m.label)}</legend>
           <label>Nama isian (yang dilihat pengunjung)<input id="dq-f-label" maxlength="60" value="${esc(m.label)}"></label>${sel("dq-f-key", "Jenis isian", KEYS, kk)}
           <label>Contoh teks (tampil di pratinjau)<input id="dq-f-sample" maxlength="300" value="${esc(m.sample)}"></label>
-          <div class="frow">${sel("dq-f-font", "Huruf", [["display", "Judul tebal (Bricolage)"], ["body", "Teks biasa (Figtree)"], ["serif", "Serif"]], m.font)}${sel("dq-f-weight", "Ketebalan", [["400", "400 biasa"], ["500", "500"], ["600", "600"], ["700", "700 tebal"], ["800", "800"], ["900", "900"]], m.weight)}</div>
+          <div class="frow"><label>Huruf<select id="dq-f-font"><optgroup label="Font web (tampil sama di semua perangkat)">${window.DQ.FONT_LIST.web.map(o => `<option value="${o[0]}"${o[0] === m.font ? " selected" : ""}>${o[1]}</option>`).join("")}</optgroup><optgroup label="Font bawaan komputer (bisa berbeda antarperangkat)">${window.DQ.FONT_LIST.sistem.map(o => `<option value="${o[0]}"${o[0] === m.font ? " selected" : ""}>${o[1]}</option>`).join("")}</optgroup></select></label>${sel("dq-f-weight", "Ketebalan", [["400", "400 biasa"], ["500", "500"], ["600", "600"], ["700", "700 tebal"], ["800", "800"], ["900", "900"]], m.weight)}</div>
           <div class="frow">${numIn("dq-f-size", "Ukuran (% tinggi poster)", m.size, 0.5, 30, 0.1)}${numIn("dq-f-ml", "Maksimal baris", m.maxlines, 1, 8, 1)}</div>
           <p class="fhelp" id="dq-f-hint" role="status"></p>
+          <button type="button" class="btn ghost sm" id="dq-f-multi" hidden>Izinkan teks turun ke 4 baris (otomatis)</button>
           <div class="frow"><label>Warna<input type="color" id="dq-f-color" value="${esc(m.color)}"></label>${sel("dq-f-align", "Perataan", [["left", "Kiri"], ["center", "Tengah"], ["right", "Kanan"]], m.align)}</div>
           <label class="fchk"><input type="checkbox" id="dq-f-it"${m.italic ? " checked" : ""}> Miring</label><label class="fchk"><input type="checkbox" id="dq-f-up"${m.upper ? " checked" : ""}> HURUF BESAR semua</label><label class="fchk"><input type="checkbox" id="dq-f-sh"${m.shadow ? " checked" : ""}> Bayangan teks</label>
           ${geo}<button type="button" class="btn danger sm" id="dq-f-del">Hapus kotak teks ini</button></fieldset>`;
       }
       $("#dq-e-form").innerHTML = h;
-      const hint = () => { const el = $("#dq-f-hint"); if (!el || s === "photo") return; const per = m.size * 1.22, fit = Math.max(1, Math.floor(m.h * 1.03 / per)); el.textContent = m.maxlines * per > m.h * 1.03 ? `Tinggi kotak (${m.h}%) hanya muat sekitar ${fit} baris pada ukuran huruf ${m.size}%, padahal Maksimal baris ${m.maxlines}. Naikkan Tinggi atau kecilkan Ukuran agar semua baris terbaca; bila tidak, teks akan dikecilkan otomatis.` : ""; };
+      const hint = () => {
+        const el = $("#dq-f-hint"), bt = $("#dq-f-multi"); if (!el || s === "photo") return;
+        const per = m.size * 1.22, fit = Math.max(1, Math.floor(m.h * 1.03 / per)), bad = m.maxlines * per > m.h * 1.03;
+        el.textContent = m.maxlines < 2 ? "Kotak ini hanya 1 baris, jadi teks yang panjang akan dikecilkan lalu dipotong dan tidak bisa turun ke baris berikutnya. Klik tombol di bawah bila teks di kotak ini boleh lebih dari satu baris (misalnya Kata-kata)."
+          : bad ? `Tinggi kotak (${m.h}%) hanya muat sekitar ${fit} baris pada ukuran huruf ${m.size}%, padahal Maksimal baris ${m.maxlines}. Naikkan Tinggi atau kecilkan Ukuran agar semua baris terbaca; bila tidak, teks akan dikecilkan otomatis.` : "";
+        if (bt) bt.hidden = !(m.maxlines < 2 || bad);
+      };
       const bind = (id, fn) => { const el = $("#" + id); if (el) el.addEventListener("input", () => { fn(el); syncBox(); later(); hint(); }); };
       const num = (el, a, b, d) => { const v = parseFloat(el.value); return Number.isFinite(v) ? clamp(v, a, b) : d; };
       bind("dq-g-x", el => { m.x = num(el, 0, 100, m.x); }); bind("dq-g-y", el => { m.y = num(el, 0, 100, m.y); }); bind("dq-g-w", el => { m.w = num(el, 1, 100, m.w); }); bind("dq-g-h", el => { m.h = num(el, 1, 100, m.h); });
       if (s !== "photo") {
         hint();
+        $("#dq-f-multi").addEventListener("click", () => {   // 4 baris: tinggi disesuaikan, posisi tengah tetap
+          const per = m.size * 1.22, lines = Math.max(m.maxlines, 4), nh = r1(Math.min(100, lines * per + 0.4)), cy = m.y + m.h / 2;
+          m.maxlines = lines; m.h = nh; m.y = r1(clamp(cy - nh / 2, 0, 100 - nh)); paintForm(); syncBox(); later();
+          emsg("info", `Kotak "${m.label}" sekarang boleh sampai ${lines} baris. Geser posisinya bila perlu agar tidak menutupi bagian lain.`);
+        });
         bind("dq-f-label", el => { m.label = el.value || "Teks"; paintList(); const b = $(`.dq-bx[data-s="${s}"] .dq-bl`); if (b) b.textContent = m.label; });
         bind("dq-f-sample", el => { m.sample = el.value; }); bind("dq-f-font", el => { m.font = el.value; }); bind("dq-f-weight", el => { m.weight = el.value; }); bind("dq-f-size", el => { m.size = num(el, 0.5, 30, m.size); });
         bind("dq-f-ml", el => { m.maxlines = Math.round(num(el, 1, 8, m.maxlines)); }); bind("dq-f-color", el => { m.color = el.value.toUpperCase(); }); bind("dq-f-align", el => { m.align = el.value; });

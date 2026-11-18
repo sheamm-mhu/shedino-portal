@@ -256,6 +256,7 @@
   }
 
   /* ---------- Header, footer, tombol WhatsApp, dialog ---------- */
+  const CREDIT = "Developed By YogaKhrsma";   // tetap di kode (tidak bisa diubah atau disembunyikan dari panel admin)
   /* Menu: "Media" berisi semua jenis konten (Kabar SHE, Edukasi, Hari Besar, Buletin, Kampanye, ...) */
   function navItems() {
     return [
@@ -343,7 +344,7 @@
         </div>
         <div class="foot-bottom">
           <p class="copy">&copy; ${new Date().getFullYear()} ${esc(C.company)}. Hak cipta dilindungi.</p>
-          ${C.credit ? `<p class="credit">${esc(C.credit)}</p>` : ""}
+          <p class="credit">${esc(CREDIT)}</p>
         </div>
       </div>`;
     }
@@ -416,11 +417,12 @@
     const who = $("#who");
     const name = (p && p.full_name) || A.session.user.email;
     const st = p ? p.status : "none";
-    const label = st === "approved" ? (p.role === "admin" ? "Admin" : "Aktif") : st === "pending" ? "Menunggu persetujuan" : "Akses nonaktif";
+    const ROLE_LABEL = { admin: "Admin", owner: "Owner", pengawas: "Pengawas", subkontraktor: "Subkontraktor" };
+    const label = st === "approved" ? (ROLE_LABEL[p.role] || "Aktif") : st === "pending" ? "Menunggu persetujuan" : "Akses nonaktif";
     const cls = st === "approved" ? "ok" : st === "pending" ? "" : "no";
     who.innerHTML = `<b>${esc(name)}</b><span class="pill ${cls}">${label}</span>`;
     who.hidden = false;
-    if (Auth.isAdmin(A)) $("#admin-link").hidden = false;
+    if (Auth.canManage(A)) $("#admin-link").hidden = false;   // admin, atau akun dengan hak kelola
     const link = $("#auth-link");
     link.textContent = "Keluar";
     link.href = "#";
@@ -430,20 +432,21 @@
   const loginUrl = () => "masuk.html?next=" + (pageName === "layanan" ? "layanan.html" : "index.html");
 
   /* Mengembalikan true bila pengguna boleh melihat konten khusus akun; selain itu menampilkan dialog */
-  function ensureAccess(title) {
+  function ensureAccess(title, perm) {
     if (!Auth.configured) { openDialog(title, "Fitur akun belum dikonfigurasi. Isi public/config.js (lihat PANDUAN-AKUN.md).", "Tutup"); return false; }
     const A = window.AUTH;
     if (!A) { openDialog(title, "Bagian ini hanya untuk akun karyawan. Silakan masuk atau daftar terlebih dahulu.", "Masuk / Daftar", () => { location.href = loginUrl(); }); return false; }
     const st = A.profile && A.profile.status;
     if (st === "pending") { openDialog(title, "Akun Anda masih menunggu persetujuan admin. Bagian ini akan terbuka setelah akun disetujui.", "Hubungi admin", () => { location.href = "index.html#kontak"; }); return false; }
     if (st !== "approved") { openDialog(title, "Akses akun Anda tidak aktif. Hubungi admin untuk informasi lebih lanjut.", "Hubungi admin", () => { location.href = "index.html#kontak"; }); return false; }
+    if (perm && !Auth.can(A, perm)) { openDialog(title, "Akun Anda tidak memiliki akses ke bagian ini. Hubungi admin bila Anda memerlukannya.", "Hubungi admin", () => { location.href = "index.html#kontak"; }); return false; }
     return true;
   }
 
   function openService(id) {
     const s = window.SERVICES.find(x => x.id === id);
     if (!s) return;
-    if (s.login && !ensureAccess(s.title)) return;
+    if (s.login && !ensureAccess(s.title, "services")) return;
     const url = window.safeUrl ? window.safeUrl(s.url) : s.url;
     if (url) {
       if (/^https?:/i.test(url)) window.open(url, "_blank", "noopener");

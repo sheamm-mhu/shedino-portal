@@ -2,7 +2,18 @@
    Semua pemrosesan berjalan di perangkat pengguna. Foto tidak dikirim ke server mana pun, kecuali poster jadi yang sengaja dikirim. */
 (function (root) {
   "use strict";
-  const FONTS = { display: '"Bricolage Grotesque","Segoe UI",system-ui,Arial,sans-serif', body: '"Figtree","Segoe UI",system-ui,Arial,sans-serif', serif: 'Georgia,"Times New Roman",serif' };
+  const FONTS = {
+    display: '"Bricolage Grotesque","Segoe UI",system-ui,Arial,sans-serif', body: '"Figtree","Segoe UI",system-ui,Arial,sans-serif', serif: 'Georgia,"Times New Roman",serif',
+    poppins: '"Poppins","Segoe UI",Arial,sans-serif', montserrat: '"Montserrat","Segoe UI",Arial,sans-serif', roboto: '"Roboto","Segoe UI",Arial,sans-serif', opensans: '"Open Sans","Segoe UI",Arial,sans-serif',
+    lato: '"Lato","Segoe UI",Arial,sans-serif', inter: '"Inter","Segoe UI",Arial,sans-serif', oswald: '"Oswald","Arial Narrow",Arial,sans-serif', bebas: '"Bebas Neue","Arial Narrow",Impact,sans-serif',
+    playfair: '"Playfair Display",Georgia,"Times New Roman",serif', arial: 'Arial,"Helvetica Neue",Helvetica,sans-serif', verdana: 'Verdana,Geneva,sans-serif', times: '"Times New Roman",Times,serif',
+    georgia: 'Georgia,"Times New Roman",serif', impact: 'Impact,"Arial Narrow",sans-serif', courier: '"Courier New",Courier,monospace'
+  };
+  /* Daftar untuk pilihan di editor templat. "web" = berkas font disimpan di situs (tampil sama di semua perangkat); "sistem" = font bawaan komputer (bisa berbeda antarperangkat). */
+  const FONT_LIST = {
+    web: [["poppins", "Poppins"], ["montserrat", "Montserrat"], ["roboto", "Roboto"], ["opensans", "Open Sans"], ["lato", "Lato"], ["inter", "Inter"], ["oswald", "Oswald (tinggi, ringkas)"], ["bebas", "Bebas Neue (judul huruf besar)"], ["playfair", "Playfair Display (serif elegan)"], ["display", "Bricolage Grotesque (judul tebal)"], ["body", "Figtree (teks biasa)"]],
+    sistem: [["arial", "Arial"], ["verdana", "Verdana"], ["times", "Times New Roman"], ["georgia", "Georgia"], ["impact", "Impact"], ["courier", "Courier New"], ["serif", "Serif bawaan"]]
+  };
   const MONTHS = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
   const todayText = (d = new Date()) => String(d.getDate()).padStart(2, "0") + "/" + MONTHS[d.getMonth()] + "/" + String(d.getFullYear()).slice(2);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -14,8 +25,10 @@
       i.onload = () => res(i); i.onerror = () => rej(new Error("Gambar tidak dapat dimuat.")); i.src = src;
     });
   }
-  async function ensureFonts() {
-    try { await Promise.all([document.fonts.load('800 32px "Bricolage Grotesque"'), document.fonts.load('600 32px "Figtree"'), document.fonts.load('italic 500 32px "Figtree"')]); } catch (e) { /* pakai font cadangan */ }
+  async function ensureFonts(fields) {   // muat font yang dipakai kotak-kotak teks (bila tak ada daftar: font bawaan situs)
+    const jobs = [['800 32px "Bricolage Grotesque"'], ['600 32px "Figtree"'], ['italic 500 32px "Figtree"']].map(a => a[0]);
+    for (const f of fields || []) { const fam = (FONTS[f.font] || "").split(",")[0]; if (fam && fam[0] === '"') jobs.push(`${f.italic ? "italic " : ""}${f.weight} 32px ${fam}`); }
+    try { await Promise.all(Array.from(new Set(jobs)).map(j => document.fonts.load(j).catch(() => null))); } catch (e) { /* pakai font cadangan */ }
   }
 
   /* ---------- Teks: pecah baris dan kecilkan huruf sampai muat di kotak ---------- */
@@ -92,10 +105,10 @@
   function drawPerson(ctx, T, p, W, H) {
     const sx = T.photo.x / 100 * W, sy = T.photo.y / 100 * H, sw = T.photo.w / 100 * W, sh = T.photo.h / 100 * H, z = clamp(p.zoom || 1, 0.3, 4);
     if (p.cut) {
-      const b = personBox(p.src), s = Math.min(sw / b.w, sh / b.h) * z, dw = b.w * s, dh = b.h * s;
+      const b = personBox(p.src), cb = clamp(p.cropB || 0, 0, 80) / 100, bh = b.h * (1 - cb), s = Math.min(sw / b.w, sh / bh) * z, dw = b.w * s, dh = bh * s;   // cropB: bagian bawah orang yang dipotong (foto terlalu panjang)
       const px0 = sx + sw / 2 - dw / 2 + (p.dx || 0) * sw, py0 = sy + sh - dh + (p.dy || 0) * sh, fr = clamp(p.fade || 0, 0, 100) / 100 * 0.4;
-      if (fr > 0.001) drawFaded(ctx, t => t.drawImage(p.src, b.x, b.y, b.w, b.h, 0, 0, Math.ceil(dw), Math.ceil(dh)), px0, py0, dw, dh, fr);
-      else ctx.drawImage(p.src, b.x, b.y, b.w, b.h, px0, py0, dw, dh);
+      if (fr > 0.001) drawFaded(ctx, t => t.drawImage(p.src, b.x, b.y, b.w, bh, 0, 0, Math.ceil(dw), Math.ceil(dh)), px0, py0, dw, dh, fr);
+      else ctx.drawImage(p.src, b.x, b.y, b.w, bh, px0, py0, dw, dh);
     } else {
       const iw = p.src.width || p.src.naturalWidth, ih = p.src.height || p.src.naturalHeight, s = Math.max(sw / iw, sh / ih) * z, dw = iw * s, dh = ih * s;
       const fr = clamp(p.fade || 0, 0, 100) / 100 * 0.4, ox = sw / 2 - dw / 2 + (p.dx || 0) * sw, oy = sh / 2 - dh / 2 + (p.dy || 0) * sh;
@@ -252,7 +265,7 @@
     for (let i = 0; i < W * H; i++) base[i] = d[i * 4 + 3] / 255; attach(canvas, base, 0.5); return canvas;
   }
   function personMap(T, p, W, H) {   // kebalikan dari drawPerson (mode potong): titik pratinjau -> piksel foto
-    const sx = T.photo.x / 100 * W, sy = T.photo.y / 100 * H, sw = T.photo.w / 100 * W, sh = T.photo.h / 100 * H, z = clamp(p.zoom || 1, 0.3, 4), b = personBox(p.src), s = Math.min(sw / b.w, sh / b.h) * z, dw = b.w * s, dh = b.h * s;
+    const sx = T.photo.x / 100 * W, sy = T.photo.y / 100 * H, sw = T.photo.w / 100 * W, sh = T.photo.h / 100 * H, z = clamp(p.zoom || 1, 0.3, 4), b = personBox(p.src), bh = b.h * (1 - clamp(p.cropB || 0, 0, 80) / 100), s = Math.min(sw / b.w, sh / bh) * z, dw = b.w * s, dh = bh * s;
     const left = sx + sw / 2 - dw / 2 + (p.dx || 0) * sw, top = sy + sh - dh + (p.dy || 0) * sh; return { s, px: x => b.x + (x - left) / s, py: y => b.y + (y - top) / s };
   }
 
@@ -289,5 +302,5 @@
     const out = document.createElement("canvas"); out.width = W; out.height = H; out.getContext("2d").drawImage(photo, 0, 0); const meta = attach(out, baseA); if (opts.edge) { meta.edge = opts.edge; recompose(out); } return out;
   }
 
-  root.DQ = { setEdge, paint, resetBrush, brushUsed, wrapTransparent, personMap, FONTS, todayText, loadImage, ensureFonts, fitText, render, toJpegBlob, prepPhoto, hasTransparency, cutout, personBox, clamp };
+  root.DQ = { FONT_LIST, setEdge, paint, resetBrush, brushUsed, wrapTransparent, personMap, FONTS, todayText, loadImage, ensureFonts, fitText, render, toJpegBlob, prepPhoto, hasTransparency, cutout, personBox, clamp };
 })(typeof self !== "undefined" ? self : this);

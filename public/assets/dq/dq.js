@@ -7,7 +7,7 @@
   const app = $("#dq-app");
   Object.defineProperty(window, "__dq", { value: { get photo() { return photo; }, get cutOK() { return cutOK; } } });   // pembantu pengujian (hanya baca)
   let SET = null, TPLS = [], cur = null, view = location.hash === "#galeri" ? "galeri" : "buat";
-  const ASSETS = {}; let orig = null, photo = null, cutOK = false, autoCut = true, person = { zoom: 1, dx: 0, dy: 0, fade: 35 }, texts = {}, tool = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "none" : "move", brushPx = 26, edgeV = 0, raf = 0, busy = false;
+  const ASSETS = {}; let orig = null, photo = null, cutOK = false, autoCut = true, person = { zoom: 1, dx: 0, dy: 0, fade: 35, cropB: 0 }, texts = {}, tool = (window.matchMedia && matchMedia("(pointer: coarse)").matches) ? "none" : "move", brushPx = 26, edgeV = 0, raf = 0, busy = false;
   const MAXLEN = { name: 80, job: 100, quote: 400, date: 30 };
 
   function msg(kind, text) { const m = $("#dq-msg"); if (!m) return; if (!text) { m.className = "dq-msg"; m.textContent = ""; return; } m.className = "dq-msg show " + kind; m.textContent = text; }
@@ -71,6 +71,8 @@
             <p class="dq-status" id="dq-fade-h">Membuat bagian bawah orang memudar halus, supaya tidak ada garis potong yang kasar di atas kotak keterangan.</p>
             <div class="dq-mv" role="group" aria-label="Geser foto"><button type="button" data-mv="l" aria-label="Geser ke kiri">&larr;</button><button type="button" data-mv="u" aria-label="Geser ke atas">&uarr;</button><button type="button" data-mv="d" aria-label="Geser ke bawah">&darr;</button><button type="button" data-mv="r" aria-label="Geser ke kanan">&rarr;</button><button type="button" id="dq-center" class="dq-btn2">Pusatkan</button></div>
             <div class="dq-tools" id="dq-tools"${photo && photo.dq && cutOK ? "" : " hidden"}>
+              <div class="dq-zoom"><label for="dq-crop" style="margin:0">Potong bagian bawah</label><input type="range" id="dq-crop" min="0" max="70" step="5" value="${person.cropB}" aria-describedby="dq-crop-h"></div>
+              <p class="dq-status" id="dq-crop-h">Bila foto terlalu panjang (badan penuh), potong bagian bawahnya. Sisa foto akan diperbesar mengisi bingkai.</p>
               <div class="dq-zoom"><label for="dq-edge" style="margin:0">Rapikan tepi</label><input type="range" id="dq-edge" min="-3" max="3" step="0.5" value="${edgeV}" aria-describedby="dq-edge-h"></div>
               <p class="dq-status" id="dq-edge-h">Geser ke kanan bila masih ada sisa latar di pinggir orang, ke kiri bila bagian orang ikut terpotong.</p>
               <div class="dq-mv" role="group" aria-label="Alat">${[["move", "Geser foto"], ["erase", "Hapus sisa"], ["restore", "Pulihkan"]].map(t => `<button type="button" class="dq-btn2" data-tool="${t[0]}" aria-pressed="${tool === t[0]}">${t[1]}</button>`).join("")}<button type="button" class="dq-btn2" id="dq-undo">Batalkan coretan</button></div>
@@ -88,9 +90,13 @@
   function counts() { cur.fields.forEach(f => { const c = $(`[data-c="${f.key}"]`); if (c) c.textContent = `${(texts[f.key] || "").length}/${MAXLEN[f.key] || 120}`; }); }
   async function redraw() {
     const cv = $("#dq-cv"); if (!cv) return; const t = cur;
-    try { const a = await assetsFor(t); await DQ.ensureFonts(); if (cv !== $("#dq-cv")) return;
-      const r = DQ.render(cv, t, a, { person: photo ? { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade } : null, texts }, { width: Math.min(t.w, 720), placeholder: true, samples: true });
-      const nt = $("#dq-pnote"); if (nt) nt.textContent = r.cut.length ? "Teks terlalu panjang dan dipotong. Perpendek agar semua terbaca." : "Teks contoh akan hilang bila kolomnya tidak diisi.";
+    try { const a = await assetsFor(t); await DQ.ensureFonts(t.fields); if (cv !== $("#dq-cv")) return;
+      const r = DQ.render(cv, t, a, { person: photo ? { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade, cropB: person.cropB } : null, texts }, { width: Math.min(t.w, 720), placeholder: true, samples: true });
+      const nt = $("#dq-pnote");
+      if (nt) {
+        const f = r.cut.length ? t.fields.find(x => x.key === r.cut[0]) : null;
+        nt.textContent = f ? (f.maxlines < 2 ? `Kolom "${f.label}" hanya muat 1 baris pada templat ini, jadi teksnya dipotong. Perpendek teks (admin bisa mengizinkan lebih dari 1 baris di editor templat).` : `Teks pada kolom "${f.label}" terlalu panjang untuk ${f.maxlines} baris dan dipotong. Perpendek agar semua terbaca.`) : "Teks contoh akan hilang bila kolomnya tidak diisi.";
+      }
     } catch (e) { msg("err", "Templat tidak dapat ditampilkan: " + friendly(e)); }
   }
   const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(redraw); };
@@ -100,8 +106,9 @@
     $("#dq-cut").addEventListener("change", e => { autoCut = e.target.checked; if (orig) onFile(null); });
     $("#dq-zoom").addEventListener("input", e => { person.zoom = +e.target.value; schedule(); });
     $(".dq-mv").addEventListener("click", e => { const b = e.target.closest("[data-mv]"); if (!b) return; const s = 0.03; ({ l: () => person.dx -= s, r: () => person.dx += s, u: () => person.dy -= s, d: () => person.dy += s })[b.dataset.mv](); schedule(); });
+    $("#dq-crop").addEventListener("input", e => { person.cropB = +e.target.value; schedule(); });
     $("#dq-fade").addEventListener("input", e => { person.fade = +e.target.value; schedule(); });
-    $("#dq-center").addEventListener("click", () => { person = { zoom: 1, dx: 0, dy: 0, fade: person.fade }; $("#dq-zoom").value = 1; schedule(); });
+    $("#dq-center").addEventListener("click", () => { person = { zoom: 1, dx: 0, dy: 0, fade: person.fade, cropB: person.cropB }; $("#dq-zoom").value = 1; schedule(); });
     $$("[data-tool]").forEach(b => b.addEventListener("click", () => { tool = tool === b.dataset.tool ? "none" : b.dataset.tool; $$("[data-tool]").forEach(x => x.setAttribute("aria-pressed", x.dataset.tool === tool)); $("#dq-stage").className = "dq-stage" + toolCls(); }));
     $("#dq-edge").addEventListener("input", e => { edgeV = +e.target.value; if (photo && photo.dq) { DQ.setEdge(photo, edgeV); schedule(); } });
     $("#dq-brush").addEventListener("input", e => { brushPx = +e.target.value; });
@@ -111,7 +118,7 @@
     const paintTool = () => (tool === "erase" || tool === "restore") && photo && photo.dq && cutOK;
     const sp = e => { const r = cv.getBoundingClientRect(), k = cv.width / r.width; return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k, k, r }; };
     const stroke = (a, b) => {
-      const m = DQ.personMap(cur, { src: photo, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade }, cv.width, cv.height), rad = Math.max(2, brushPx * a.k / m.s), dist = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(dist / Math.max(1, brushPx * a.k / 3)));
+      const m = DQ.personMap(cur, { src: photo, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade, cropB: person.cropB }, cv.width, cv.height), rad = Math.max(2, brushPx * a.k / m.s), dist = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.ceil(dist / Math.max(1, brushPx * a.k / 3)));
       for (let i = 0; i <= n; i++) DQ.paint(photo, m.px(a.x + (b.x - a.x) * i / n), m.py(a.y + (b.y - a.y) * i / n), rad, tool);
       schedule();
     };
@@ -131,7 +138,7 @@
   async function onFile(file) {
     if (busy) return; busy = true; msg();
     try {
-      if (file) { status("Membaca foto..."); orig = await DQ.prepPhoto(file); person = { zoom: 1, dx: 0, dy: 0, fade: person.fade }; const z = $("#dq-zoom"); if (z) z.value = 1; }
+      if (file) { status("Membaca foto..."); orig = await DQ.prepPhoto(file); person = { zoom: 1, dx: 0, dy: 0, fade: person.fade, cropB: 0 }; const cr = $("#dq-crop"); if (cr) cr.value = 0; const z = $("#dq-zoom"); if (z) z.value = 1; }
       cutOK = false; photo = orig;
       if (DQ.hasTransparency(orig)) { if (!orig.dq) DQ.wrapTransparent(orig); cutOK = true; status("Foto sudah tanpa latar, dipakai apa adanya. Alat Rapikan tepi dan kuas tetap bisa dipakai."); }
       else if (autoCut) {
@@ -151,8 +158,8 @@
     return true;
   }
   async function finalBlob(maxBytes) {
-    await DQ.ensureFonts(); const a = await assetsFor(cur), cv = document.createElement("canvas");
-    DQ.render(cv, cur, a, { person: { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade }, texts }, { width: Math.min(cur.w, 1350) });
+    await DQ.ensureFonts(cur.fields); const a = await assetsFor(cur), cv = document.createElement("canvas");
+    DQ.render(cv, cur, a, { person: { src: photo, cut: cutOK, zoom: person.zoom, dx: person.dx, dy: person.dy, fade: person.fade, cropB: person.cropB }, texts }, { width: Math.min(cur.w, 1350) });
     return DQ.toJpegBlob(cv, maxBytes);
   }
   async function download() {

@@ -592,6 +592,7 @@
     try { st = await Auth.getState(); } catch (e) { st = null; }
     if (!st) { message("Masuk untuk bermain", "SHEGAMES hanya untuk karyawan yang sudah punya akun dan disetujui admin.", `<a class="g-btn" href="masuk.html?next=shegames.html">Masuk atau daftar</a>`); return; }
     if (!st.profile || st.profile.status !== "approved") { message("Akun menunggu persetujuan", "Akun Anda sudah terdaftar tetapi belum disetujui admin. Coba lagi setelah disetujui.", `<a class="g-btn ghost" href="index.html">Kembali ke SHEDINO</a>`); return; }
+    if (!Auth.can(st, "games")) { message("Tidak ada akses ke SHEGAMES", "Akun Anda tidak memiliki akses untuk bermain SHEGAMES. Hubungi admin bila Anda memerlukannya.", `<a class="g-btn ghost" href="index.html">Kembali ke SHEDINO</a>`); return; }
     try { await refreshStatus(); }
     catch (e) {
       if (e.relogin) { message("Sesi berakhir", esc(e.message), `<a class="g-btn" href="masuk.html?next=shegames.html">Masuk lagi</a>`); return; }

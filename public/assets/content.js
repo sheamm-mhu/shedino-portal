@@ -15,7 +15,7 @@
   }
   window.safeUrl = safeUrl;
 
-  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "credit", "teamPhoto", "heroImage", "heroOverlay", "heroLayout", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
+  const SETTING_KEYS = ["company", "address", "mapsUrl", "email", "whatsapp", "whatsappLabel", "hours", "teamPhoto", "heroImage", "heroOverlay", "heroLayout", "heroTitle", "heroLead", "servicesIntro", "aboutP1", "aboutP2"];
   const TONES = ["blue", "teal", "amber", "red", "gray"];
 
   const mapMedia = r => ("cta" in r && (window.MEDIA_HAS_CTA = true), {
